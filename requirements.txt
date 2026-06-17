@@ -1,0 +1,37 @@
+# Core Web Framework
+flask==3.0.3
+flask-cors==4.0.0
+
+# Firebase / Firestore
+firebase-admin==6.5.0
+
+# Google Gemini AI
+google-generativeai==0.7.2
+
+# Environment & Config
+python-dotenv==1.0.1
+
+# HTTP & API utilities
+requests==2.32.3
+httpx==0.27.0
+
+# Data handling
+pydantic==2.7.4
+
+# ICAR / Agricultural Data Processing
+pandas==2.2.2
+numpy==1.26.4
+
+# Date/Time utilities
+python-dateutil==2.9.0
+
+# Async support (if using FastAPI instead of Flask)
+# fastapi==0.111.0
+# uvicorn==0.30.1
+# asyncio is built-in
+
+# Optional: JWT auth if login is added
+# PyJWT==2.8.0
+
+# Optional: Logging
+loguru==0.7.2
