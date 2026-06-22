@@ -3,897 +3,652 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KrishiConnect | Agronomist & Farmer Collaborative Hub</title>
-    <!-- Tailwind CSS for modern style styling -->
+    <title>KrishiConnect | Farmer & Agronomist AI Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for clean icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8fafc; /* Slate-50 clean light background */
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Tab slide indicator */
+        .tab-indicator {
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s;
         }
-        /* Custom scrollbar for terminal and lists */
-        .custom-scroll::-webkit-scrollbar {
-            width: 6px;
+
+        /* Sidebar nav item active */
+        .nav-item.active {
+            background: rgba(130,192,51,0.12);
+            color: #82c033;
+            border-left: 3px solid #82c033;
         }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: #f1f5f9;
+        .nav-item {
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
         }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
+        .nav-item:hover:not(.active) {
+            background: rgba(255,255,255,0.05);
+            color: #e2e8f0;
         }
+
+        /* Section visibility */
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        /* Stat card pulse */
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .stat-val { animation: countUp 0.4s ease forwards; }
+
+        /* Ticket cards */
+        .ticket-card {
+            transition: box-shadow 0.15s, border-color 0.15s;
+        }
+        .ticket-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-color: #82c033;
+        }
+
+        /* AI chat bubble */
+        .bubble-ai {
+            background: #f0f7e8;
+            border-left: 3px solid #82c033;
+        }
+        .bubble-user {
+            background: #1e5e3a;
+            color: white;
+        }
+
+        /* Scrollbar */
+        .slim-scroll::-webkit-scrollbar { width: 4px; }
+        .slim-scroll::-webkit-scrollbar-track { background: transparent; }
+        .slim-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* Mobile sidebar overlay */
+        #sidebar-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 30;
+        }
+        #sidebar-overlay.open { display: block; }
+
+        /* Status dot */
+        .dot-live {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #22c55e;
+            animation: pulse-dot 1.8s infinite;
+            display: inline-block;
+        }
+        @keyframes pulse-dot {
+            0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+            50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+        }
+
+        /* Severity badges */
+        .badge-critical  { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+        .badge-moderate  { background:#fef9c3; color:#92400e; border:1px solid #fde68a; }
+        .badge-mild      { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+        .badge-resolved  { background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; }
+
+        textarea { resize: vertical; }
+
+        /* Form inputs */
+        .form-input {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 9px 13px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .form-input:focus {
+            border-color: #1e5e3a;
+            box-shadow: 0 0 0 3px rgba(30,94,58,0.1);
+        }
+        select.form-input { cursor: pointer; }
+
+        /* Chat input */
+        #chat-input { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="min-h-screen text-slate-800 font-sans flex flex-col">
+<body class="bg-slate-50 min-h-screen">
 
-    <!-- Top Navigation Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <!-- Brand Logo -->
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchPage('home')">
-                <div class="bg-emerald-600 text-white p-2 rounded-xl flex items-center justify-center shadow-md shadow-emerald-200">
-                    <span class="text-xl">🌱</span>
-                </div>
-                <div>
-                    <h1 class="text-lg font-black text-slate-950 tracking-tight flex items-center">
-                        KrishiConnect
-                        <span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">v3.5 Active</span>
-                    </h1>
-                    <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Farmer-Agronomist AI Bridge</p>
-                </div>
-            </div>
-
-            <!-- Global Switcher & System Indicators -->
-            <div class="flex items-center space-x-4">
-                <!-- User Role Switcher -->
-                <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
-                    <button id="roleFarmerBtn" onclick="setUserRole('farmer')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-1 bg-white text-emerald-700 shadow-sm">
-                        <i class="fa-solid fa-wheat-awn"></i>
-                        <span>Farmer</span>
-                    </button>
-                    <button id="roleAgronomistBtn" onclick="setUserRole('agronomist')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-1 text-slate-600 hover:text-slate-900">
-                        <i class="fa-solid fa-user-doctor"></i>
-                        <span>Agronomist</span>
-                    </button>
-                </div>
-
-                <!-- Database status tag -->
-                <div id="dbStatus" class="hidden sm:flex items-center space-x-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-500">
-                    <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse" id="dbStatusDot"></span>
-                    <span id="dbStatusText">INIT CORES</span>
-                </div>
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="bg-[#0a2215] text-white h-14 flex items-center px-4 sm:px-6 sticky top-0 z-40 shadow-lg">
+    <div class="flex items-center gap-3 flex-1">
+        <!-- Mobile hamburger -->
+        <button id="menu-btn" class="lg:hidden text-slate-300 hover:text-white mr-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        <!-- Logo -->
+        <div class="flex items-center gap-2">
+            <span class="text-[#82c033] text-xl">🌱</span>
+            <div class="leading-none">
+                <span class="font-bold text-sm tracking-wide">KrishiConnect</span>
+                <span class="text-[10px] text-[#82c033] mono block">v3.5 Active</span>
             </div>
         </div>
-    </header>
+    </div>
 
-    <!-- Multi-Page Application Container -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Role switcher tabs -->
+    <div class="flex items-center bg-[#103420] border border-[#1e5e3a] rounded-lg p-0.5 gap-0.5">
+        <a href="index.html"
+           class="role-tab px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-[#1e5e3a] text-white shadow">
+            🌾 Farmer
+        </a>
+        <a href="agronomist.html"
+           class="role-tab px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-300 hover:text-white">
+            🔬 Agronomist
+        </a>
+    </div>
 
-        <!-- Navigation Sub-Bar (Tabs representing pages) -->
-        <nav class="flex space-x-2 border-b border-slate-200 mb-6 pb-2 overflow-x-auto">
-            <button id="tabHome" onclick="switchPage('home')" class="px-4 py-2 text-sm font-bold border-b-2 border-emerald-600 text-emerald-700 whitespace-nowrap flex items-center space-x-2">
-                <i class="fa-solid fa-house"></i>
-                <span>Home Dashboard</span>
+    <!-- Right status -->
+    <div class="flex items-center gap-3 ml-4">
+        <span class="hidden sm:flex items-center gap-1.5 mono text-[10px] text-slate-400">
+            <span class="dot-live"></span>AI ONLINE
+        </span>
+    </div>
+</header>
+
+<!-- ============================================================
+     LAYOUT: Sidebar + Content
+     ============================================================ -->
+<div class="flex min-h-[calc(100vh-56px)]">
+
+    <!-- Sidebar overlay (mobile) -->
+    <div id="sidebar-overlay"></div>
+
+    <!-- ---- SIDEBAR ---- -->
+    <aside id="sidebar"
+           class="w-56 bg-[#0a2215] text-slate-300 flex flex-col fixed lg:static top-14 bottom-0 left-0 z-40 transition-transform -translate-x-full lg:translate-x-0 shadow-2xl">
+
+        <nav class="flex-1 px-2 py-4 space-y-0.5">
+            <p class="text-[10px] mono text-slate-500 px-3 mb-2 uppercase tracking-widest">Navigation</p>
+
+            <button onclick="showSection('dashboard')" class="nav-item active w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="dashboard">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Home Dashboard
             </button>
-            <button id="tabFarmer" onclick="switchPage('farmer')" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center space-x-2">
-                <i class="fa-solid fa-seedling"></i>
-                <span>Farmer request Desk</span>
+
+            <button onclick="showSection('requests')" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="requests">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Farmer Request Desk
             </button>
-            <button id="tabAgronomist" onclick="switchPage('agronomist')" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center space-x-2">
-                <i class="fa-solid fa- stethoscope"></i>
-                <span>Agronomist Hub</span>
+
+            <button onclick="showSection('chatbot')" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="chatbot">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                Direct AI Advisor
             </button>
-            <button id="tabChat" onclick="switchPage('chat')" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center space-x-2">
-                <i class="fa-solid fa-robot"></i>
-                <span>Direct AI Advisor</span>
-            </button>
+
+            <div class="border-t border-[#1e5e3a] my-3 mx-2"></div>
+            <p class="text-[10px] mono text-slate-500 px-3 mb-2 uppercase tracking-widest">Tools</p>
+
+            <a href="agronomist.html" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium text-[#82c033]">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                Agronomist Hub →
+            </a>
         </nav>
 
-        <!-- PAGE 1: Home Dashboard -->
-        <div id="pageHome" class="space-y-6">
-            <!-- Welcome Hero Grid -->
-            <div class="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-                <div class="space-y-3 z-10 max-w-xl">
-                    <span class="bg-emerald-600/55 text-emerald-100 text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border border-emerald-500/20">Sustainable Agro-AI Initiative</span>
-                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Protecting Crops, Connecting Experts.</h2>
-                    <p class="text-sm text-emerald-100/90 leading-relaxed">
-                        KrishiConnect simplifies farm monitoring. Farmers upload photos and symptoms, our Generative AI instantly triages the issue, and certified agronomists provide final medical actions.
-                    </p>
-                    <div class="pt-2 flex flex-wrap gap-3">
-                        <button onclick="switchPage('farmer')" class="bg-white hover:bg-emerald-50 text-emerald-800 text-xs uppercase font-black px-5 py-3 rounded-xl transition shadow-lg tracking-wide">
+        <div class="px-4 py-3 border-t border-[#1e5e3a]">
+            <p class="text-[10px] text-slate-500 mono leading-relaxed">VLM Core Active<br>Firestore Cluster • ICAR DB</p>
+        </div>
+    </aside>
+
+    <!-- ---- MAIN CONTENT ---- -->
+    <main class="flex-1 overflow-auto">
+
+        <!-- ===================================================
+             SECTION 1: HOME DASHBOARD
+             =================================================== -->
+        <section id="section-dashboard" class="page-section active p-6 lg:p-8 max-w-6xl mx-auto">
+
+            <!-- Hero Banner -->
+            <div class="bg-gradient-to-br from-[#0a2215] to-[#16482c] rounded-2xl p-7 mb-8 text-white relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-48 h-48 opacity-5">
+                    <svg viewBox="0 0 200 200" fill="none"><circle cx="100" cy="100" r="80" stroke="white" stroke-width="2"/><circle cx="100" cy="100" r="50" stroke="white" stroke-width="2"/><circle cx="100" cy="100" r="20" stroke="white" stroke-width="2"/></svg>
+                </div>
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <p class="text-[#82c033] mono text-xs font-semibold tracking-widest mb-1">FARMER PORTAL</p>
+                        <h1 class="text-2xl font-bold mb-2">Protecting Crops, Connecting Experts.</h1>
+                        <p class="text-slate-300 text-sm max-w-lg leading-relaxed">
+                            Upload crop photos, describe symptoms, and get instant AI triage — then a certified agronomist reviews and prescribes final treatment.
+                        </p>
+                    </div>
+                    <div class="flex gap-3 flex-wrap mt-2">
+                        <button onclick="showSection('requests')" class="bg-[#82c033] hover:bg-[#6fa828] text-[#0a2215] text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg">
                             Submit Crop Request
                         </button>
-                        <button onclick="switchPage('chat')" class="bg-emerald-600/50 hover:bg-emerald-600 border border-emerald-400/30 text-white text-xs uppercase font-bold px-5 py-3 rounded-xl transition">
+                        <button onclick="showSection('chatbot')" class="border border-[#82c033] text-[#82c033] hover:bg-[#82c033] hover:text-[#0a2215] text-sm font-bold px-5 py-2.5 rounded-xl transition-all">
                             Consult AI Chatbot
                         </button>
                     </div>
                 </div>
-                <!-- Mini Stats Box -->
-                <div class="grid grid-cols-2 gap-4 w-full md:w-auto z-10 font-mono">
-                    <div class="bg-white/10 backdrop-blur border border-white/10 p-4 rounded-2xl text-center">
-                        <span class="block text-2xl font-black text-white" id="statTicketsCount">--</span>
-                        <span class="text-[9px] uppercase tracking-wider text-emerald-200">Active Cases</span>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur border border-white/10 p-4 rounded-2xl text-center">
-                        <span class="block text-2xl font-black text-white" id="statResolvedCount">--</span>
-                        <span class="text-[9px] uppercase tracking-wider text-emerald-200">Resolved Cases</span>
-                    </div>
-                </div>
-                <div class="absolute right-0 bottom-0 top-0 w-1/3 bg-radial opacity-10 pointer-events-none"></div>
             </div>
 
-            <!-- Informative Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Portal Overview Card -->
-                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                    <div class="text-emerald-700 bg-emerald-50 p-3 rounded-xl w-fit">
-                        <i class="fa-solid fa-wheat-awn text-xl"></i>
-                    </div>
-                    <h3 class="text-base font-bold text-slate-900">For Farmers</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Encountering leaf yellowing, weird holes, or mildew? Quickly create a request. Our instant AI diagnostic agent evaluates symptoms and guides you on temporary preventative actions while experts review.
-                    </p>
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-slate-800 block stat-val">24</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Active Cases</span>
+                    <span class="text-[10px] text-amber-500 font-semibold">↑ 3 today</span>
                 </div>
-
-                <!-- Agronomist Card -->
-                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                    <div class="text-emerald-700 bg-emerald-50 p-3 rounded-xl w-fit">
-                        <i class="fa-solid fa-user-doctor text-xl"></i>
-                    </div>
-                    <h3 class="text-base font-bold text-slate-900">For Certified Agronomists</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Identify and support active parcels. View farmer symptoms alongside advanced AI diagnostics and self-attention mappings. Override or validate prescriptions and append notes.
-                    </p>
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-emerald-600 block stat-val">187</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Resolved Cases</span>
+                    <span class="text-[10px] text-emerald-600 font-semibold">↑ 12% This Month</span>
                 </div>
-
-                <!-- AI System Card -->
-                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                    <div class="text-emerald-700 bg-emerald-50 p-3 rounded-xl w-fit">
-                        <i class="fa-solid fa-robot text-xl"></i>
-                    </div>
-                    <h3 class="text-base font-bold text-slate-900">Real-Time AI Agents</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Built around high-performance Generative AI (Gemini Flash), our agent parses physical field descriptions, maps risk targets, and produces treatment options aligned with local agriculture databases.
-                    </p>
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-blue-600 block stat-val">94.8%</span>
+                    <span class="text-xs text-slate-400 mt-1 block">AI Accuracy</span>
+                    <span class="text-[10px] text-blue-500 font-semibold">Gemini Flash</span>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-slate-800 block stat-val">1,482</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Total Scans</span>
+                    <span class="text-[10px] text-slate-400 font-mono">All Time</span>
                 </div>
             </div>
 
-            <!-- List of Latest Active Consultations -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm font-black uppercase tracking-wider text-slate-700">Recent Community Consultation Log</h3>
-                    <span class="text-xs text-slate-500 font-mono" id="commCount">0 Tickets Found</span>
+            <!-- Feature Cards -->
+            <div class="grid md:grid-cols-3 gap-5 mb-8">
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="w-10 h-10 bg-[#e1efe5] rounded-xl flex items-center justify-center mb-4">🌿</div>
+                    <h3 class="font-bold text-slate-800 mb-2 text-sm">For Farmers</h3>
+                    <p class="text-slate-500 text-xs leading-relaxed">Encountering leaf yellowing, weird holes, or mildew? Quickly create a request. Our AI diagnostic agent evaluates symptoms and guides you on temporary preventative actions while experts review.</p>
+                    <button onclick="showSection('requests')" class="mt-4 text-[#1e5e3a] font-semibold text-xs hover:underline">Log a request →</button>
                 </div>
-                <div class="divide-y divide-slate-100" id="homeTicketsList">
-                    <div class="py-4 text-center text-xs text-slate-400">Loading live diagnostic logs...</div>
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="w-10 h-10 bg-[#e1efe5] rounded-xl flex items-center justify-center mb-4">🔬</div>
+                    <h3 class="font-bold text-slate-800 mb-2 text-sm">For Certified Agronomists</h3>
+                    <p class="text-slate-500 text-xs leading-relaxed">Identify and support active parcels. View farmer symptoms alongside advanced AI diagnostics and self-attention mappings. Override or validate prescriptions and append notes.</p>
+                    <a href="agronomist.html" class="mt-4 text-[#1e5e3a] font-semibold text-xs hover:underline block">Switch to Agronomist Hub →</a>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                    <div class="w-10 h-10 bg-[#e1efe5] rounded-xl flex items-center justify-center mb-4">🤖</div>
+                    <h3 class="font-bold text-slate-800 mb-2 text-sm">Real-Time AI Agents</h3>
+                    <p class="text-slate-500 text-xs leading-relaxed">Built around Gemini 2.5 Flash, our agent parses field descriptions, maps risk targets, and produces treatment options aligned with local ICAR agriculture databases.</p>
+                    <button onclick="showSection('chatbot')" class="mt-4 text-[#1e5e3a] font-semibold text-xs hover:underline">Ask KrishiAI →</button>
                 </div>
             </div>
-        </div>
 
-        <!-- PAGE 2: Farmer Request Desk -->
-        <div id="pageFarmer" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Submit Form Card -->
-                <div class="lg:col-span-1 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
-                        <span class="bg-emerald-100 text-emerald-700 p-1.5 rounded-lg text-xs"><i class="fa-solid fa-file-medical"></i></span>
-                        <span>Log New Crop Incident</span>
+            <!-- Recent Community Log -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="font-bold text-slate-800 text-sm">Recent Community Consultation Log</h3>
+                    <span class="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold mono">
+                        <span class="dot-live"></span>Live
+                    </span>
+                </div>
+                <div class="space-y-3" id="community-log">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================
+             SECTION 2: FARMER REQUEST DESK
+             =================================================== -->
+        <section id="section-requests" class="page-section p-6 lg:p-8 max-w-6xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-lg font-bold text-slate-800">Farmer Request Desk</h2>
+                <p class="text-sm text-slate-500 mt-0.5">Log a new crop incident or track your submitted cases.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-5 gap-6">
+                <!-- LOG FORM -->
+                <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <h3 class="font-bold text-slate-700 text-sm mb-5 flex items-center gap-2">
+                        <span class="bg-[#e1efe5] text-[#1e5e3a] px-2 py-0.5 rounded text-xs mono">NEW</span>
+                        Log New Crop Incident
                     </h3>
-
-                    <form id="ticketForm" class="space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Crop Variety</label>
-                            <input type="text" id="frmCropType" value="Tomato" placeholder="e.g., Wheat, Rice, Cotton" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-emerald-600 focus:outline-none bg-slate-50" required>
+                    <div class="space-y-4">
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1.5">Crop Variety</label>
+                                <input type="text" id="crop-variety" placeholder="e.g. Tomato, Wheat, Maize…" class="form-input">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1.5">Growth Phenology</label>
+                                <select id="growth-stage" class="form-input">
+                                    <option value="">Select Stage</option>
+                                    <option>Seedling</option>
+                                    <option>Vegetative Growth</option>
+                                    <option>Flowering / Fruiting</option>
+                                    <option>Ready for Harvest</option>
+                                </select>
+                            </div>
                         </div>
-
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Growth Phenology</label>
-                            <select id="frmCropStage" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-emerald-600 focus:outline-none bg-slate-50">
-                                <option value="Seedling">Seedling</option>
-                                <option value="Vegetative" selected>Vegetative Growth</option>
-                                <option value="Flowering">Flowering / Fruiting</option>
-                                <option value="Harvesting">Ready for Harvest</option>
-                            </select>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Regional State / District</label>
+                            <input type="text" id="region" placeholder="e.g. Maharashtra — Pune District" class="form-input">
                         </div>
-
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Regional State Vector</label>
-                            <input type="text" id="frmRegion" value="Punjab (Alluvial Plains)" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-emerald-600 focus:outline-none bg-slate-50" required>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Observed Symptoms & Pest Culture Details</label>
+                            <textarea id="symptoms" rows="4" class="form-input" placeholder="Leaves are curling downwards with noticeable white powdery spots covering the upper layers and stems..."></textarea>
                         </div>
-
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Observed Symptoms & Pest Culture Details</label>
-                            <textarea id="frmSymptoms" rows="4" placeholder="Detail any holes, wilting, powder coatings, or bugs clearly..." class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-emerald-600 focus:outline-none bg-slate-50" required>Leaves are curling downwards with noticeable white powdery spots covering the upper layers and stems.</textarea>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Upload Leaf / Crop Image (optional)</label>
+                            <div class="border-2 border-dashed border-slate-200 hover:border-[#1e5e3a] rounded-lg p-4 text-center cursor-pointer transition-colors bg-slate-50" id="upload-zone">
+                                <p class="text-xs text-slate-400">Click to upload or drag & drop · JPG, PNG up to 10MB</p>
+                            </div>
+                            <input type="file" id="req-image" accept="image/*" class="hidden">
                         </div>
-
-                        <button type="submit" id="frmSubmitBtn" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold text-xs uppercase py-4 rounded-xl transition tracking-wider shadow-md">
+                        <button onclick="submitRequest()" class="w-full bg-[#1e5e3a] hover:bg-[#16482c] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2" id="submit-btn">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             Submit & Initiate AI Triage
                         </button>
-                    </form>
+                        <div id="submit-feedback" class="hidden text-xs text-center text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 rounded-lg py-2.5"></div>
+                    </div>
                 </div>
 
-                <!-- Own History Card -->
-                <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col h-[650px]">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-black uppercase tracking-wider text-slate-700">Your Monitored Crop Tickets</h3>
-                        <span class="bg-slate-100 text-slate-600 text-[10px] font-mono px-2.5 py-1 rounded-full" id="myCount">0 Registered</span>
+                <!-- MY TICKETS -->
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-700 text-sm">Your Monitored Tickets</h3>
+                        <span id="ticket-count-badge" class="bg-[#e1efe5] text-[#1e5e3a] text-xs font-bold px-2 py-0.5 rounded mono">0</span>
                     </div>
-                    <div class="flex-grow overflow-y-auto space-y-4 custom-scroll" id="myTicketsList">
-                        <div class="text-center py-10 text-xs text-slate-400">Loading your private ticket cache...</div>
+                    <div id="my-tickets" class="space-y-3 max-h-[480px] overflow-y-auto slim-scroll pr-1">
+                        <div class="text-center py-8 text-slate-400">
+                            <p class="text-2xl mb-2">📋</p>
+                            <p class="text-xs">No tickets yet. Submit your first crop request to get started.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- PAGE 3: Agronomist Hub -->
-        <div id="pageAgronomist" class="hidden space-y-6">
-            <!-- Warning block if user hasn't switched role -->
-            <div id="agronomistRoleWarning" class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-5 flex items-start space-x-3 text-xs leading-relaxed">
-                <span class="text-base">⚠️</span>
+        <!-- ===================================================
+             SECTION 3: AI CHATBOT
+             =================================================== -->
+        <section id="section-chatbot" class="page-section p-6 lg:p-8 max-w-4xl mx-auto">
+            <div class="mb-6 flex items-center justify-between">
                 <div>
-                    <span class="font-bold block">Viewing mode restricted!</span>
-                    To resolve cases, append prescriptions, or change statuses, verify your active role is set to **Agronomist** via the top-right role switcher.
+                    <h2 class="text-lg font-bold text-slate-800">Direct KrishiAI Consultant</h2>
+                    <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5"><span class="dot-live"></span>Powered by Gemini 2.5 Flash</p>
                 </div>
+                <button onclick="clearChat()" class="border border-slate-200 text-slate-500 hover:bg-slate-100 text-xs px-3 py-1.5 rounded-lg transition-colors">Clear History</button>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Queue List column -->
-                <div class="lg:col-span-1 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col h-[650px]">
-                    <h3 class="text-sm font-black uppercase tracking-wider text-slate-700 mb-4">Inbound Diagnostics Queue</h3>
-                    <div class="flex-grow overflow-y-auto space-y-3 custom-scroll" id="agriQueueList">
-                        <div class="text-center py-10 text-xs text-slate-400">Awaiting queue stream...</div>
-                    </div>
-                </div>
-
-                <!-- Action Board Column -->
-                <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between" id="agriDetailsPanel">
-                    <div class="text-center py-20 text-slate-400 font-mono text-xs">
-                        <span class="block text-2xl mb-2">📋</span>
-                        Select an inbound ticket from the queue list to begin expert evaluation.
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PAGE 4: Direct AI Advisor Chat -->
-        <div id="pageChat" class="hidden space-y-6">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col h-[600px] justify-between">
-                <!-- Chat Head -->
-                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                    <div class="flex items-center space-x-3">
-                        <span class="text-2xl">🤖</span>
-                        <div>
-                            <h3 class="text-sm font-black text-slate-900">Direct KrishiAI General Consultant</h3>
-                            <p class="text-[10px] font-mono text-emerald-600 uppercase tracking-widest">Powered by Gemini 2.5 Flash</p>
-                        </div>
-                    </div>
-                    <button onclick="clearChatHistory()" class="text-xs text-red-500 hover:text-red-700 flex items-center space-x-1 font-semibold">
-                        <i class="fa-solid fa-trash-can"></i>
-                        <span>Clear History</span>
-                    </button>
-                </div>
-
-                <!-- Chat Body messages -->
-                <div id="chatMessages" class="flex-grow overflow-y-auto py-4 space-y-4 custom-scroll">
-                    <!-- Default System Welcome -->
-                    <div class="flex items-start space-x-3 max-w-[85%]">
-                        <div class="bg-emerald-50 text-emerald-700 p-2 rounded-xl text-xs"><i class="fa-solid fa-robot"></i></div>
-                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs text-slate-800 leading-relaxed font-mono">
-                            Greetings! I am KrishiAI, your Virtual Agronomist. Ask me anything regarding soil chemical properties, crop diseases, bio-remediations, or agricultural best practices. How can I support your harvest planning today?
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col" style="height: calc(100vh - 240px); min-height: 450px;">
+                <!-- Chat Window -->
+                <div id="chat-window" class="flex-1 overflow-y-auto slim-scroll p-5 space-y-4">
+                    <!-- Welcome message -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-[#e1efe5] flex items-center justify-center shrink-0 text-sm">🌱</div>
+                        <div class="bubble-ai rounded-xl rounded-tl-none p-4 max-w-xl text-sm text-slate-700 leading-relaxed">
+                            Greetings! I am <strong>KrishiAI</strong>, your Virtual Agronomist. Ask me anything regarding soil chemical properties, crop diseases, bio-remediations, or agricultural best practices. How can I support your harvest planning today?
                         </div>
                     </div>
                 </div>
-
-                <!-- Chat Input box -->
-                <form id="chatForm" class="flex items-center space-x-2 border-t border-slate-100 pt-4">
-                    <input type="text" id="chatInput" placeholder="Ask about soil ratios, chemical limits, ICAR directions..." class="flex-grow border border-slate-200 rounded-xl px-4 py-3 text-xs bg-slate-50 focus:outline-none focus:border-emerald-600 transition" required>
-                    <button type="submit" id="chatSendBtn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold text-xs uppercase px-5 py-3 rounded-xl transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-paper-plane"></i>
-                        <span>Transmit</span>
+                <!-- Input Bar -->
+                <div class="border-t border-slate-100 p-4 flex gap-3">
+                    <textarea id="chat-input" rows="2"
+                        class="form-input flex-1 resize-none text-sm"
+                        placeholder="Ask about crop diseases, soil health, pest control…"
+                        onkeydown="handleChatKey(event)"></textarea>
+                    <button onclick="sendChat()" id="chat-send-btn"
+                        class="bg-[#1e5e3a] hover:bg-[#16482c] text-white px-5 py-2 rounded-xl text-sm font-bold transition-all self-end">
+                        Send
                     </button>
-                </form>
+                </div>
             </div>
-        </div>
+        </section>
 
     </main>
+</div>
 
-    <!-- Footer Area -->
-    <footer class="bg-white border-t border-slate-200 py-6 mt-8">
-        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
-            <p class="text-xs text-slate-500">
-                KrishiConnect Portal - Engineered for Farmers and Agronomic Professionals. All system actions are grounded using ICAR principles.
-            </p>
-            <div class="flex justify-center space-x-4 text-[10px] font-mono text-slate-400">
-                <span>VLM Core Active</span>
-                <span>•</span>
-                <span>Secure Firestore Cluster</span>
-                <span>•</span>
-                <span>Light Theme Workstation</span>
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="bg-[#0a2215] border-t border-[#103420] text-slate-400 text-xs py-5">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p>© 2026 KrishiConnect Portal — Engineered for Farmers & Agronomic Professionals. ICAR Principles.</p>
+        <div class="flex gap-4">
+            <span class="mono">VLM Core Active</span>
+            <span>•</span>
+            <span class="mono">Secure Firestore</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+/* ---- Sidebar toggle (mobile) ---- */
+const menuBtn        = document.getElementById('menu-btn');
+const sidebar        = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+menuBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('-translate-x-full');
+    sidebarOverlay.classList.toggle('open');
+});
+sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.remove('open');
+});
+
+/* ---- Section Navigation ---- */
+function showSection(id) {
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+    const btn = document.querySelector(`[data-section="${id}"]`);
+    if (btn) btn.classList.add('active');
+    // close mobile sidebar
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.remove('open');
+}
+
+/* ---- Community Log ---- */
+const COMMUNITY_LOG = [
+    { crop:'Tomato', region:'Maharashtra', symptom:'Yellow leaf curl with white flies on undersides', severity:'critical', status:'Under Review', ago:'12 min ago' },
+    { crop:'Wheat', region:'Punjab', symptom:'Rust-coloured pustules on upper leaf surface', severity:'moderate', status:'AI Triaged', ago:'34 min ago' },
+    { crop:'Maize', region:'Karnataka', symptom:'Gray lesions on lower leaves — Gray Leaf Spot suspected', severity:'moderate', status:'Expert Assigned', ago:'1 hr ago' },
+    { crop:'Grape', region:'Nashik', symptom:'Dark circular spots on berries — Black Rot outbreak', severity:'critical', status:'Prescription Issued', ago:'2 hr ago' },
+    { crop:'Potato', region:'Himachal Pradesh', symptom:'Water-soaked dark lesions on stems and tubers', severity:'critical', status:'Quarantine Flagged', ago:'3 hr ago' },
+    { crop:'Rice', region:'Tamil Nadu', symptom:'White-grey patches on upper canopy — sheath blight', severity:'mild', status:'Resolved', ago:'Yesterday' },
+];
+
+const SEVERITY_CLASS = {
+    critical: 'badge-critical',
+    moderate: 'badge-moderate',
+    mild:     'badge-mild',
+    resolved: 'badge-resolved'
+};
+
+function renderCommunityLog() {
+    const container = document.getElementById('community-log');
+    container.innerHTML = COMMUNITY_LOG.map(e => `
+        <div class="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+            <div class="shrink-0 mt-0.5">
+                <span class="text-base">🌿</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                    <span class="text-xs font-bold text-slate-800">${e.crop} — ${e.region}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${SEVERITY_CLASS[e.severity]}">${e.severity.toUpperCase()}</span>
+                </div>
+                <p class="text-xs text-slate-500 truncate">${e.symptom}</p>
+            </div>
+            <div class="shrink-0 text-right">
+                <span class="text-[10px] text-slate-400 block">${e.ago}</span>
+                <span class="text-[10px] text-slate-600 font-medium">${e.status}</span>
             </div>
         </div>
-    </footer>
-
-    <!-- ==================== Firebase Integration & Core Logic Module ==================== -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global Parameters
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'krishiconnect-shared-portal';
-        let firebaseConfig;
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        } catch(e) {
-            firebaseConfig = null;
-        }
-
-        // Global State Objects
-        let db = null;
-        let auth = null;
-        let currentUser = null;
-        let userRole = 'farmer'; // 'farmer' or 'agronomist'
-        let ticketsList = []; // Memory cache of active tickets
-        const apiKey = ""; // Gemini API Key (managed dynamically by preview runtime environment)
-
-        // Preload fallback mock database to make the preview active and beautiful immediately if Firebase parameters are empty
-        const LOCAL_STORAGE_FALLBACK_KEY = "krishiconnect_mock_db";
-        let isFallbackActive = false;
-
-        const MOCK_TICKETS = [
-            {
-                id: "mock-1",
-                cropType: "Tomato",
-                cropStage: "Flowering",
-                region: "Pune (Deccan Traps)",
-                symptoms: "Circular brown spots on leaves resembling target bullseyes with surrounding yellow zones.",
-                createdAt: Date.now() - 3600000 * 2,
-                status: "Awaiting Agronomist",
-                farmerId: "mock-farmer-id",
-                aiTriage: "AI TRIA_REPORT:\n- Diagnosis Vector: Suspected Early Blight (Alternaria solani).\n- Action Level: HIGH\n- Suggested Immediate Step: Trim the lower leaves that are closest to the soil to limit further soil-borne spore transfers. Avoid overhead micro-sprinkler watering.",
-                agronomistNote: ""
-            },
-            {
-                id: "mock-2",
-                cropType: "Rice",
-                cropStage: "Vegetative",
-                region: "Amritsar (Alluvial Flatlands)",
-                symptoms: "Browning borders and dry white streaks with small insect groups cluster around nodes.",
-                createdAt: Date.now() - 3600000 * 5,
-                status: "Resolved",
-                farmerId: "mock-farmer-id",
-                aiTriage: "AI TRIA_REPORT:\n- Diagnosis Vector: Insect-led Foliar Sucking Complex (Suspected Thrips).\n- Action Level: MEDIUM\n- Suggestion: Introduce neem seed kernel extract sprays immediately.",
-                agronomistNote: "Verified diagnosis. Prescribed application of imidacloprid 17.8% SL at 1ml/3L during dusk. Farmer updated on chemical ratios.",
-                agronomistId: "expert-1"
-            }
-        ];
-
-        // System Initialization
-        window.onload = async () => {
-            initAppTheme();
-            await setupDatabase();
-            switchPage('home');
-        };
-
-        function initAppTheme() {
-            // Force strict white body background override
-            document.body.style.backgroundColor = "#f8fafc";
-        }
-
-        // Setup Firebase or activate robust in-memory client side fallback
-        async function setupDatabase() {
-            const statusDot = document.getElementById("dbStatusDot");
-            const statusText = document.getElementById("dbStatusText");
-            const statusIndicator = document.getElementById("dbStatus");
-            statusIndicator.classList.remove("hidden");
-
-            if (!firebaseConfig) {
-                activateFallbackMode("MOCK CORE ACTIVE");
-                return;
-            }
-
-            try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                // Auth Before Queries
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        currentUser = user;
-                        statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-                        statusText.innerText = "CLOUD CORE SYNCHRONIZED";
-                        subscribeToTickets();
-                    } else {
-                        activateFallbackMode("AUTH DISCONNECTED");
-                    }
-                });
-
-            } catch (err) {
-                console.error("Database Connection Refused. Initiating fallback...", err);
-                activateFallbackMode("SANDBOX EMULATION");
-            }
-        }
-
-        function activateFallbackMode(message) {
-            isFallbackActive = true;
-            const statusDot = document.getElementById("dbStatusDot");
-            const statusText = document.getElementById("dbStatusText");
-            statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
-            statusText.innerText = message;
-
-            // Load from localStorage or set default
-            const localData = localStorage.getItem(LOCAL_STORAGE_FALLBACK_KEY);
-            if (localData) {
-                try {
-                    ticketsList = JSON.parse(localData);
-                } catch(e) {
-                    ticketsList = [...MOCK_TICKETS];
-                }
-            } else {
-                ticketsList = [...MOCK_TICKETS];
-                saveToLocalStorageFallback();
-            }
-            refreshAllUIPanels();
-        }
-
-        function saveToLocalStorageFallback() {
-            localStorage.setItem(LOCAL_STORAGE_FALLBACK_KEY, JSON.stringify(ticketsList));
-        }
-
-        // Read Live Updates via standard Snapshot (RULE 2: No complex query index required)
-        function subscribeToTickets() {
-            if (isFallbackActive || !db) return;
-
-            // Strict collection path matching rule 1
-            const ticketsRef = collection(db, 'artifacts', appId, 'public', 'data', 'tickets');
-
-            onSnapshot(ticketsRef, (snapshot) => {
-                const tickets = [];
-                snapshot.forEach((doc) => {
-                    tickets.push({ id: doc.id, ...doc.data() });
-                });
-
-                // Standardize chronological sorting locally in-memory (RULE 2 compliance)
-                tickets.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                ticketsList = tickets;
-                refreshAllUIPanels();
-            }, (error) => {
-                console.error("Snapshot feed read failure. Switching sandbox.", error);
-                activateFallbackMode("SANDBOX EMULATION");
-            });
-        }
-
-        // Generative AI Service Layer - Gemini 2.5 Flash implementation
-        async function runGeminiTriage(crop, stage, symptoms, region) {
-            // Predefined system guidelines for prompt tuning
-            const systemPrompt = `You are KrishiAI, an elite digital agronomist. Analyze this crop variety, stage, and field symptoms to provide a clean automated triage analysis. Format your output to contain three core bullet points: 
-- suspected disease/pest identification
-- alert level (LOW, MEDIUM, HIGH)
-- immediate defensive/prophylactic physical actions to protect healthy neighboring plants. Keep output short, friendly, and formatted for a text viewer. Always include a disclaimer that a certified agronomist has been alerted to review.`;
-
-            const query = `Specimen Variety: ${crop}\nGrowth Phase: ${stage}\nGeography: ${region}\nSymptoms noted: ${symptoms}`;
-
-            try {
-                // Exponential backoff retry handler
-                let responseText = "";
-                let retries = 5;
-                let delay = 1000;
-
-                while (retries > 0) {
-                    try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: query }] }],
-                                systemInstruction: { parts: [{ text: systemPrompt }] }
-                            })
-                        });
-
-                        if (!response.ok) throw new Error();
-                        const result = await response.json();
-                        responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                        break;
-                    } catch (e) {
-                        retries--;
-                        if (retries === 0) throw e;
-                        await new Promise(r => setTimeout(r, delay));
-                        delay *= 2; // Double delay for exponential backoff
-                    }
-                }
-
-                return responseText || "AI Triage: Generation returned null content stream.";
-
-            } catch (err) {
-                // Return intelligent standard mock response if connection gets interrupted
-                return `AI AUTODIAGNOSTIC SIMULATION (Local Engine):\n- SUSPECTED THREAT: Suspected Fungal Pathological Complex (highly compatible with Alternaria/Blight structures due to yellowing margins & concentric spots).\n- RISK STATE: HIGH\n- RECOMMENDED PROPHYLACTIC STEP: Prune lower yellowing branches. Ensure complete separation of healthy foliage blocks. Systemic copper hydroxide spray advised at 2g/L. Please wait for the assigned Agronomist's final confirmation note.`;
-            }
-        }
-
-        // Global UI Actions
-        window.switchPage = (pageName) => {
-            const pages = ['home', 'farmer', 'agronomist', 'chat'];
-            pages.forEach(p => {
-                document.getElementById(`page${p.charAt(0).toUpperCase() + p.slice(1)}`).classList.add('hidden');
-                document.getElementById(`tab${p.charAt(0).toUpperCase() + p.slice(1)}`).className = "px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center space-x-2";
-            });
-
-            document.getElementById(`page${pageName.charAt(0).toUpperCase() + pageName.slice(1)}`).classList.remove('hidden');
-            document.getElementById(`tab${pageName.charAt(0).toUpperCase() + pageName.slice(1)}`).className = "px-4 py-2 text-sm font-bold border-b-2 border-emerald-600 text-emerald-700 whitespace-nowrap flex items-center space-x-2";
-        };
-
-        window.setUserRole = (role) => {
-            userRole = role;
-            const farmerBtn = document.getElementById("roleFarmerBtn");
-            const agronomistBtn = document.getElementById("roleAgronomistBtn");
-            const warningBox = document.getElementById("agronomistRoleWarning");
-
-            if (role === 'farmer') {
-                farmerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-1 bg-white text-emerald-700 shadow-sm border border-slate-200";
-                agronomistBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-1 text-slate-600 hover:text-slate-900";
-                warningBox.classList.remove("hidden");
-            } else {
-                agronomistBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-1 bg-white text-emerald-700 shadow-sm border border-slate-200";
-                farmerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-1 text-slate-600 hover:text-slate-900";
-                warningBox.classList.add("hidden");
-            }
-            refreshAllUIPanels();
-        };
-
-        // Submit Ticket Event
-        document.getElementById("ticketForm").onsubmit = async (e) => {
-            e.preventDefault();
-            const submitBtn = document.getElementById("frmSubmitBtn");
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Transmitting to AI Agent...";
-
-            const crop = document.getElementById("frmCropType").value;
-            const stage = document.getElementById("frmCropStage").value;
-            const region = document.getElementById("frmRegion").value;
-            const symptoms = document.getElementById("frmSymptoms").value;
-
-            // Trigger AI pre-diagnosis first
-            const triageReport = await runGeminiTriage(crop, stage, symptoms, region);
-
-            const newTicket = {
-                cropType: crop,
-                cropStage: stage,
-                region: region,
-                symptoms: symptoms,
-                createdAt: Date.now(),
-                status: "Awaiting Agronomist",
-                farmerId: currentUser ? currentUser.uid : "local-user",
-                aiTriage: triageReport,
-                agronomistNote: "",
-                agronomistId: ""
-            };
-
-            if (isFallbackActive) {
-                newTicket.id = "sandbox-" + Date.now();
-                ticketsList.unshift(newTicket);
-                saveToLocalStorageFallback();
-                refreshAllUIPanels();
-            } else {
-                try {
-                    const ticketsRef = collection(db, 'artifacts', appId, 'public', 'data', 'tickets');
-                    await addDoc(ticketsRef, newTicket);
-                } catch(e) {
-                    console.error("Firebase write error. Reverting to sandbox cache.", e);
-                    activateFallbackMode("SANDBOX FALLBACK ON WRITE");
-                }
-            }
-
-            // UI feedback & form reset
-            document.getElementById("ticketForm").reset();
-            submitBtn.disabled = false;
-            submitBtn.innerText = "Submit & Initiate AI Triage";
-            
-            // Switch screen automatically to see submitted ticket
-            refreshAllUIPanels();
-        };
-
-        // Resolve/Prescribe Event (Agronomist Action)
-        window.submitAgronomistPrescription = async (ticketId) => {
-            const noteInput = document.getElementById(`prescNote-${ticketId}`);
-            if (!noteInput || !noteInput.value.trim()) {
-                alert("Please write a clean prescription before saving.");
-                return;
-            }
-
-            const prescriptionText = noteInput.value.trim();
-
-            if (isFallbackActive) {
-                const ticketIndex = ticketsList.findIndex(t => t.id === ticketId);
-                if (ticketIndex !== -1) {
-                    ticketsList[ticketIndex].status = "Resolved";
-                    ticketsList[ticketIndex].agronomistNote = prescriptionText;
-                    ticketsList[ticketIndex].agronomistId = "expert-sandbox";
-                    saveToLocalStorageFallback();
-                    refreshAllUIPanels();
-                }
-            } else {
-                try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'tickets', ticketId);
-                    await updateDoc(docRef, {
-                        status: "Resolved",
-                        agronomistNote: prescriptionText,
-                        agronomistId: currentUser ? currentUser.uid : "expert-cloud"
-                    });
-                } catch(e) {
-                    console.error("Cloud override failed.", e);
-                }
-            }
-        };
-
-        // Primary UI Renderer Engine
-        function refreshAllUIPanels() {
-            // Update stats
-            const totalActive = ticketsList.filter(t => t.status === "Awaiting Agronomist").length;
-            const totalResolved = ticketsList.filter(t => t.status === "Resolved").length;
-            document.getElementById("statTicketsCount").innerText = totalActive;
-            document.getElementById("statResolvedCount").innerText = totalResolved;
-
-            // Page 1: Home List
-            const homeList = document.getElementById("homeTicketsList");
-            const commCount = document.getElementById("commCount");
-            commCount.innerText = `${ticketsList.length} Tickets Found`;
-
-            if (ticketsList.length === 0) {
-                homeList.innerHTML = `<div class="py-10 text-center text-xs text-slate-400">No active community tickets registered. Be the first to file a report.</div>`;
-            } else {
-                homeList.innerHTML = ticketsList.map(t => `
-                    <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-xs font-black text-slate-900">${t.cropType}</span>
-                                <span class="bg-slate-100 text-[10px] text-slate-500 px-2 py-0.5 rounded font-medium">${t.cropStage}</span>
-                                <span class="text-[10px] text-slate-400 font-mono">${t.region}</span>
-                            </div>
-                            <p class="text-xs text-slate-500 max-w-xl truncate">${t.symptoms}</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            ${t.status === "Resolved" 
-                                ? `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full"><i class="fa-solid fa-square-check"></i> RESOLVED</span>`
-                                : `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse"><i class="fa-solid fa-clock"></i> PENDING</span>`
-                            }
-                            <button onclick="viewTicketDetails('${t.id}')" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100">View</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // Page 2: Farmer private dashboard
-            const myCount = document.getElementById("myCount");
-            const myTicketsList = document.getElementById("myTicketsList");
-            const myId = currentUser ? currentUser.uid : "local-user";
-            
-            // For simple view demonstration, display all user tickets
-            const myTickets = ticketsList; // Shows overall pipeline to keep user testing simple
-            myCount.innerText = `${myTickets.length} Registered`;
-
-            if (myTickets.length === 0) {
-                myTicketsList.innerHTML = `<div class="text-center py-20 text-slate-400 text-xs">Awaiting your first registered crop ticket input.</div>`;
-            } else {
-                myTicketsList.innerHTML = myTickets.map(t => `
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-xs font-mono text-slate-400">${new Date(t.createdAt).toLocaleDateString()}</span>
-                                <h4 class="font-extrabold text-sm text-slate-900">${t.cropType} (${t.cropStage})</h4>
-                                <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">${t.region}</p>
-                            </div>
-                            ${t.status === "Resolved" 
-                                ? `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-3 py-1 rounded-full"><i class="fa-solid fa-check"></i> Agronomist Certified</span>`
-                                : `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-full"><i class="fa-solid fa-hourglass-half"></i> Awaiting Agronomist</span>`
-                            }
-                        </div>
-
-                        <div class="bg-white border border-slate-100 p-3 rounded-lg text-xs">
-                            <span class="block font-bold text-slate-500 uppercase tracking-widest text-[9px] mb-1">Farmer Symptom Notes:</span>
-                            <p class="text-slate-700">${t.symptoms}</p>
-                        </div>
-
-                        <!-- Instant AI diagnostic feedback element -->
-                        <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg text-xs space-y-2">
-                            <div class="flex items-center space-x-1 text-emerald-800 font-black text-[10px] uppercase tracking-wider">
-                                <i class="fa-solid fa-robot"></i>
-                                <span>Immediate AI Triage Analysis</span>
-                            </div>
-                            <p class="text-emerald-950 font-mono leading-relaxed whitespace-pre-wrap">${t.aiTriage}</p>
-                        </div>
-
-                        <!-- Agronomist advice note if resolved -->
-                        ${t.status === "Resolved" 
-                            ? `<div class="bg-white border-2 border-emerald-500 p-4 rounded-lg text-xs space-y-1">
-                                 <span class="block font-extrabold text-slate-900 text-[10px] uppercase tracking-wider"><i class="fa-solid fa-stethoscope"></i> Verified Expert Prescription:</span>
-                                 <p class="text-slate-700 font-serif italic">${t.agronomistNote}</p>
-                               </div>`
-                            : `<div class="bg-slate-100 p-3 rounded-lg text-xs text-slate-500 flex items-center space-x-2">
-                                 <span>ℹ️</span>
-                                 <span>Our active agronomist network is reviewing this case. Ensure canopy margins are monitored.</span>
-                               </div>`
-                        }
-                    </div>
-                `).join('');
-            }
-
-            // Page 3: Agronomist Hub Queue List
-            const queueList = document.getElementById("agriQueueList");
-            const activeQueue = ticketsList;
-
-            if (activeQueue.length === 0) {
-                queueList.innerHTML = `<div class="text-center py-20 text-xs text-slate-400">Queue is currently clear.</div>`;
-            } else {
-                queueList.innerHTML = activeQueue.map(t => `
-                    <div onclick="selectQueueTicket('${t.id}')" class="bg-slate-50 hover:bg-emerald-50 border border-slate-200 rounded-xl p-4 cursor-pointer transition shadow-sm">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-bold font-mono text-slate-400">TICKET #${t.id.slice(0,6)}</span>
-                            <span class="${t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-[9px] font-bold px-2 py-0.5 rounded-full">
-                                ${t.status === 'Resolved' ? 'RESOLVED' : 'AWAITING'}
-                            </span>
-                        </div>
-                        <h4 class="font-bold text-xs text-slate-900 mt-1">${t.cropType} (${t.cropStage})</h4>
-                        <p class="text-[10px] text-slate-500 truncate mt-1">${t.symptoms}</p>
-                    </div>
-                `).join('');
-            }
-        }
-
-        // View ticket from home page click
-        window.viewTicketDetails = (ticketId) => {
-            switchPage('farmer');
-            // Smoothly scroll down directly to targeted list item
-            const el = document.getElementById("myTicketsList");
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-        };
-
-        // Select and expand queue item inside agronomist workstation panel
-        window.selectQueueTicket = (ticketId) => {
-            const detailsPanel = document.getElementById("agriDetailsPanel");
-            const t = ticketsList.find(item => item.id === ticketId);
-            if (!t) return;
-
-            const isAgronomistMode = userRole === 'agronomist';
-
-            detailsPanel.innerHTML = `
-                <div class="space-y-5 flex-grow overflow-y-auto max-h-[500px] pr-2 custom-scroll">
-                    <div class="flex justify-between items-start border-b border-slate-100 pb-3">
-                        <div>
-                            <span class="text-xs font-mono text-slate-400">Filer ID: ${t.farmerId.slice(0, 8)}</span>
-                            <h3 class="text-lg font-black text-slate-900">${t.cropType} Case File</h3>
-                            <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">${t.region}</p>
-                        </div>
-                        <span class="${t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs font-bold px-3.5 py-1 rounded-full">
-                            ${t.status === 'Resolved' ? 'Resolved' : 'Needs Action'}
-                        </span>
-                    </div>
-
-                    <div class="space-y-1">
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Farmer Symptoms Log</span>
-                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-700 leading-relaxed font-serif">
-                            "${t.symptoms}"
-                        </div>
-                    </div>
-
-                    <div class="space-y-1">
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generative AI Triage Pre-Diagnosis</span>
-                        <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-xs text-emerald-950 font-mono leading-relaxed whitespace-pre-wrap">
-                            ${t.aiTriage}
-                        </div>
-                    </div>
-
-                    <!-- Input prescriptions field -->
-                    <div class="border-t border-slate-100 pt-4 space-y-2">
-                        <label class="block text-[10px] font-black text-emerald-700 uppercase tracking-wider">Expert Agronomist Prescription</label>
-                        
-                        ${t.status === 'Resolved'
-                            ? `<div class="bg-emerald-50 border-l-4 border-emerald-600 p-4 rounded-r-xl text-xs text-slate-800 leading-relaxed font-serif italic">
-                                 "${t.agronomistNote}"
-                               </div>`
-                            : isAgronomistMode 
-                                ? `<textarea id="prescNote-${t.id}" rows="3" placeholder="Define the final treatment strategy (e.g., active compound dosage metrics, biological compost parameters)..." class="w-full border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-emerald-600 bg-slate-50" required></textarea>`
-                                : `<div class="bg-amber-50 text-amber-800 p-3 rounded-xl text-xs flex items-center space-x-2">
-                                     <span>⚠️</span>
-                                     <span>Switch to **Agronomist** mode at the top right header panel to log a prescription.</span>
-                                   </div>`
-                        }
-                    </div>
-                </div>
-
-                ${t.status === 'Resolved'
-                    ? `<div class="text-[10px] text-slate-400 font-mono text-center pt-4 border-t border-slate-100">Case resolved by certified ID [${t.agronomistId.slice(0, 8)}]</div>`
-                    : isAgronomistMode
-                        ? `<div class="pt-4 border-t border-slate-100 flex justify-end">
-                             <button onclick="submitAgronomistPrescription('${t.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold text-xs uppercase px-6 py-3 rounded-xl transition tracking-wide shadow-md">
-                                 Acknowledge & Save Expert Prescription
-                             </button>
-                           </div>`
-                        : ''
-                }
-            `;
-        };
-
-        // Direct General AI Chat Implementation
-        const chatForm = document.getElementById("chatForm");
-        const chatInput = document.getElementById("chatInput");
-        const chatMessages = document.getElementById("chatMessages");
-
-        chatForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const msg = chatInput.value.trim();
-            if (!msg) return;
-
-            // User input bubble
-            appendChatMessage("user", msg);
-            chatInput.value = "";
-
-            // Bot response bubble with simulated visual typing/loading
-            const botBubbleId = appendChatMessage("bot", "Synthesizing localized chemical & biological advisory matrices...");
-
-            // Run Gemini Query
-            const reply = await runGeminiTriage("General Crops", "Growth Assessment Mode", msg, "Alluvial Flatlands");
-            updateChatMessage(botBubbleId, reply);
-        };
-
-        function appendChatMessage(sender, text) {
-            const bubbleId = "msg-" + Date.now();
-            const div = document.createElement("div");
-            div.id = bubbleId;
-
-            if (sender === "user") {
-                div.className = "flex items-start space-x-3 max-w-[85%] ml-auto justify-end";
-                div.innerHTML = `
-                    <div class="bg-emerald-700 text-white p-3 rounded-2xl text-xs leading-relaxed shadow-sm">
-                        ${text}
-                    </div>
-                    <div class="bg-slate-200 text-slate-700 p-2 rounded-xl text-xs"><i class="fa-solid fa-user"></i></div>
-                `;
-            } else {
-                div.className = "flex items-start space-x-3 max-w-[85%]";
-                div.innerHTML = `
-                    <div class="bg-emerald-50 text-emerald-700 p-2 rounded-xl text-xs"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs text-slate-800 leading-relaxed font-mono whitespace-pre-wrap">
-                        ${text}
-                    </div>
-                `;
-            }
-
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            return bubbleId;
-        }
-
-        function updateChatMessage(bubbleId, newText) {
-            const el = document.getElementById(bubbleId);
-            if (el) {
-                const bubble = el.querySelector(".font-mono");
-                if (bubble) {
-                    bubble.innerText = newText;
-                }
-            }
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        window.clearChatHistory = () => {
-            chatMessages.innerHTML = `
-                <div class="flex items-start space-x-3 max-w-[85%]">
-                    <div class="bg-emerald-50 text-emerald-700 p-2 rounded-xl text-xs"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs text-slate-800 leading-relaxed font-mono">
-                        Console history cleared. Ask me any agronomy question regarding soil, diseases, dosages, or physical treatments.
-                    </div>
-                </div>
-            `;
-        };
-    </script>
-    <script type="module" src="app.js"></script>
+    `).join('');
+}
+
+/* ---- Ticket Storage & Submit ---- */
+const tickets = [];
+
+document.getElementById('upload-zone').addEventListener('click', () => {
+    document.getElementById('req-image').click();
+});
+
+function submitRequest() {
+    const crop     = document.getElementById('crop-variety').value.trim();
+    const stage    = document.getElementById('growth-stage').value;
+    const region   = document.getElementById('region').value.trim();
+    const symptoms = document.getElementById('symptoms').value.trim();
+
+    if (!crop || !symptoms) {
+        alert('Please enter at least a crop variety and symptom description.');
+        return;
+    }
+
+    const ticket = {
+        id:       'KK-' + String(tickets.length + 1).padStart(3, '0'),
+        crop, stage, region, symptoms,
+        status:   'AI Triage Pending',
+        severity: 'moderate',
+        time:     new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+    };
+    tickets.unshift(ticket);
+    renderTickets();
+
+    // Show feedback
+    const fb = document.getElementById('submit-feedback');
+    fb.textContent = `✓ Ticket ${ticket.id} submitted! AI triage is running…`;
+    fb.classList.remove('hidden');
+    setTimeout(() => fb.classList.add('hidden'), 4000);
+
+    // Simulate AI triage status update after 2s
+    setTimeout(() => {
+        ticket.status = 'AI Triaged — Awaiting Expert';
+        renderTickets();
+    }, 2000);
+
+    // Clear form
+    ['crop-variety','symptoms','region'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('growth-stage').value = '';
+}
+
+function renderTickets() {
+    const container = document.getElementById('my-tickets');
+    document.getElementById('ticket-count-badge').textContent = tickets.length;
+    if (!tickets.length) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-400"><p class="text-2xl mb-2">📋</p><p class="text-xs">No tickets yet.</p></div>`;
+        return;
+    }
+    container.innerHTML = tickets.map(t => `
+        <div class="ticket-card border border-slate-200 rounded-xl p-4 cursor-pointer bg-white">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="mono text-[10px] text-slate-400">${t.id}</span>
+                <span class="text-[10px] text-slate-400">${t.time}</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-800">${t.crop} ${t.stage ? '· ' + t.stage : ''}</p>
+            <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">${t.symptoms}</p>
+            <div class="mt-2.5 flex items-center gap-2">
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${SEVERITY_CLASS[t.severity]}">${t.severity.toUpperCase()}</span>
+                <span class="text-[10px] text-slate-500 font-medium">→ ${t.status}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+/* ---- AI Chatbot ---- */
+const chatMessages = [];
+
+function appendChatBubble(role, text) {
+    const window_ = document.getElementById('chat-window');
+    const isAI    = role === 'ai';
+    const div     = document.createElement('div');
+    div.className = 'flex items-start gap-3 ' + (isAI ? '' : 'flex-row-reverse');
+    div.innerHTML = `
+        <div class="w-8 h-8 rounded-full ${isAI ? 'bg-[#e1efe5]' : 'bg-[#1e5e3a]'} flex items-center justify-center shrink-0 text-sm">
+            ${isAI ? '🌱' : '👤'}
+        </div>
+        <div class="${isAI ? 'bubble-ai rounded-tl-none' : 'bubble-user rounded-tr-none'} rounded-xl p-4 max-w-lg text-sm leading-relaxed">
+            ${text}
+        </div>`;
+    window_.appendChild(div);
+    window_.scrollTop = window_.scrollHeight;
+}
+
+function appendTyping() {
+    const w   = document.getElementById('chat-window');
+    const div = document.createElement('div');
+    div.id    = 'typing-indicator';
+    div.className = 'flex items-start gap-3';
+    div.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-[#e1efe5] flex items-center justify-center shrink-0 text-sm">🌱</div>
+        <div class="bubble-ai rounded-xl rounded-tl-none p-4 text-sm text-slate-400 italic">KrishiAI is analysing…</div>`;
+    w.appendChild(div);
+    w.scrollTop = w.scrollHeight;
+}
+
+function removeTyping() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+}
+
+async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const text  = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    appendChatBubble('user', text);
+    chatMessages.push({ role:'user', content: text });
+    appendTyping();
+
+    document.getElementById('chat-send-btn').disabled = true;
+
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 1000,
+                system: 'You are KrishiAI, an expert virtual agronomist assistant for Indian farmers. You have deep knowledge of crop diseases, soil health, pest management, ICAR guidelines, and regional agricultural practices. Answer concisely and practically. Format your responses with simple HTML bold tags for key terms when helpful. Always be supportive and use plain language suitable for farmers.',
+                messages: chatMessages
+            })
+        });
+        const data    = await res.json();
+        const reply   = data.content?.[0]?.text || 'Sorry, I could not generate a response. Please try again.';
+        chatMessages.push({ role:'assistant', content: reply });
+        removeTyping();
+        appendChatBubble('ai', reply);
+    } catch (err) {
+        removeTyping();
+        appendChatBubble('ai', 'Network error — please check your connection and try again.');
+    }
+
+    document.getElementById('chat-send-btn').disabled = false;
+}
+
+function handleChatKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+    }
+}
+
+function clearChat() {
+    chatMessages.length = 0;
+    const w = document.getElementById('chat-window');
+    w.innerHTML = `
+        <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-[#e1efe5] flex items-center justify-center shrink-0 text-sm">🌱</div>
+            <div class="bubble-ai rounded-xl rounded-tl-none p-4 max-w-xl text-sm text-slate-700 leading-relaxed">
+                Greetings! I am <strong>KrishiAI</strong>, your Virtual Agronomist. Ask me anything about soil chemistry, crop diseases, or agricultural best practices. How can I support your harvest today?
+            </div>
+        </div>`;
+}
+
+/* ---- Init ---- */
+renderCommunityLog();
+renderTickets();
+</script>
 </body>
 </html>
-
