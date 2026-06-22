@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KrishiConnect | Agronomist Precision Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Sidebar */
+        .nav-item { border-left: 3px solid transparent; transition: all 0.15s; }
+        .nav-item.active { background: rgba(130,192,51,0.12); color:#82c033; border-left:3px solid #82c033; }
+        .nav-item:hover:not(.active) { background:rgba(255,255,255,0.05); color:#e2e8f0; }
+
+        /* Sections */
+        .page-section { display:none; }
+        .page-section.active { display:block; }
+
+        /* Dropzone */
+        #drop-zone { transition: border-color 0.15s, background 0.15s; }
+        #drop-zone:hover { border-color:#1e5e3a; background:#f0fdf4; }
+
+        /* Scrollbar */
+        .slim-scroll::-webkit-scrollbar { width:4px; }
+        .slim-scroll::-webkit-scrollbar-track { background:transparent; }
+        .slim-scroll::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+
+        /* Status dot */
+        .dot-live { width:8px; height:8px; border-radius:50%; background:#22c55e; animation:pulse-dot 1.8s infinite; display:inline-block; }
+        @keyframes pulse-dot { 0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.5); } 50%{ box-shadow:0 0 0 6px rgba(34,197,94,0); } }
+
+        /* Mobile sidebar */
+        #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:30; }
+        #sidebar-overlay.open { display:block; }
+
+        /* Form inputs */
+        .form-input { width:100%; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:9px 13px; font-size:.875rem; outline:none; transition:border-color .15s, box-shadow .15s; }
+        .form-input:focus { border-color:#1e5e3a; box-shadow:0 0 0 3px rgba(30,94,58,.1); }
+
+        /* Ticket queue items */
+        .queue-item { cursor:pointer; transition:all .15s; border-left:3px solid transparent; }
+        .queue-item:hover { border-left-color:#82c033; background:#f8fafc; }
+        .queue-item.selected { border-left-color:#1e5e3a; background:#f0fdf4; }
+
+        /* Badge severity */
+        .badge-critical { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+        .badge-moderate { background:#fef9c3; color:#92400e; border:1px solid #fde68a; }
+        .badge-mild     { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+        .badge-resolved { background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; }
+
+        /* Recovery chart container */
+        #recovery-chart-container { position:relative; width:100%; height:260px; }
+
+        /* Spinner */
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .spin { animation:spin .8s linear infinite; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="bg-[#0a2215] text-white h-14 flex items-center px-4 sm:px-6 sticky top-0 z-40 shadow-lg">
+    <div class="flex items-center gap-3 flex-1">
+        <button id="menu-btn" class="lg:hidden text-slate-300 hover:text-white mr-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        <div class="flex items-center gap-2">
+            <span class="text-[#82c033] text-xl">🌱</span>
+            <div class="leading-none">
+                <span class="font-bold text-sm tracking-wide">KrishiConnect</span>
+                <span class="text-[10px] text-[#82c033] mono block">v3.5 Active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Switcher -->
+    <div class="flex items-center bg-[#103420] border border-[#1e5e3a] rounded-lg p-0.5 gap-0.5">
+        <a href="index.html"
+           class="role-tab px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-slate-300 hover:text-white">
+            🌾 Farmer
+        </a>
+        <a href="agronomist.html"
+           class="role-tab px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-[#1e5e3a] text-white shadow">
+            🔬 Agronomist
+        </a>
+    </div>
+
+    <div class="flex items-center gap-3 ml-4">
+        <span class="hidden sm:flex items-center gap-1.5 mono text-[10px] text-slate-400">
+            <span class="dot-live"></span>API ONLINE
+        </span>
+    </div>
+</header>
+
+<!-- ============================================================
+     LAYOUT
+     ============================================================ -->
+<div class="flex min-h-[calc(100vh-56px)]">
+
+    <div id="sidebar-overlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-56 bg-[#0a2215] text-slate-300 flex flex-col fixed lg:static top-14 bottom-0 left-0 z-40 transition-transform -translate-x-full lg:translate-x-0 shadow-2xl">
+        <nav class="flex-1 px-2 py-4 space-y-0.5">
+            <p class="text-[10px] mono text-slate-500 px-3 mb-2 uppercase tracking-widest">Agronomist Hub</p>
+
+            <button onclick="showSection('diagnostics')" class="nav-item active w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="diagnostics">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                Diagnostic Engine
+            </button>
+
+            <button onclick="showSection('queue')" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="queue">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Inbound Queue
+            </button>
+
+            <button onclick="showSection('prognosis')" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="prognosis">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                14-Day Prognosis
+            </button>
+
+            <button onclick="showSection('dashboard')" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium" data-section="dashboard">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Field Dashboard
+            </button>
+
+            <div class="border-t border-[#1e5e3a] my-3 mx-2"></div>
+            <a href="index.html" class="nav-item w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-r text-sm font-medium text-[#82c033]">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                ← Farmer Portal
+            </a>
+        </nav>
+        <div class="px-4 py-3 border-t border-[#1e5e3a]">
+            <p class="text-[10px] text-slate-500 mono leading-relaxed">MobileNetV2 Edge<br>38 Target Classes • ICAR DB</p>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 overflow-auto">
+
+        <!-- ===================================================
+             SECTION 1: ML DIAGNOSTIC ENGINE
+             =================================================== -->
+        <section id="section-diagnostics" class="page-section active p-6 lg:p-8 max-w-6xl mx-auto">
+            <div class="mb-6">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="bg-[#e1efe5] text-[#1e5e3a] px-2 py-0.5 rounded text-xs mono font-semibold">PHASE 1</span>
+                    <h2 class="text-lg font-bold text-slate-800">Image Diagnostic & ML Inference</h2>
+                </div>
+                <p class="text-sm text-slate-500">Upload a leaf image or select a simulated dataset class to run ML inference.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- Left: Upload + Controls -->
+                <div class="space-y-5">
+                    <!-- Upload Zone -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-slate-700 text-sm">Leaf Image Upload</h3>
+                            <span class="mono text-xs text-slate-400">Target Classes: 38</span>
+                        </div>
+                        <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer bg-slate-50 relative overflow-hidden">
+                            <input type="file" id="image-upload" accept="image/*" class="hidden">
+                            <div id="upload-prompt">
+                                <div class="w-12 h-12 bg-[#e1efe5] rounded-xl mx-auto flex items-center justify-center mb-3 text-xl">🍃</div>
+                                <p class="text-sm text-slate-600"><span class="text-[#1e5e3a] font-semibold">Upload leaf image</span> or drag & drop</p>
+                                <p class="text-xs text-slate-400 mt-1">JPG, PNG up to 10MB</p>
+                            </div>
+                            <div id="image-preview-container" class="hidden relative w-full h-44 rounded-lg overflow-hidden">
+                                <img id="image-preview" src="#" alt="Preview" class="w-full h-full object-cover">
+                                <button id="remove-img-btn" class="absolute top-2 right-2 bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs">✕ Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Class Simulator -->
+                        <div class="mt-4">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Simulation: Select Dataset Class</label>
+                            <select id="class-select" class="form-input">
+                                <!-- Populated by JS -->
+                            </select>
+                            <p class="text-[11px] text-slate-400 mt-1">Auto-runs on change. Simulates validation folder output.</p>
+                        </div>
+
+                        <button id="analyze-btn" class="w-full mt-4 bg-[#1e5e3a] hover:bg-[#16482c] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2">
+                            <svg id="spinner" class="w-4 h-4 spin hidden" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            <span id="btn-text">RUN DIAGNOSTIC MODEL</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Treatment Advisory Card -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <h3 class="font-bold text-slate-700 text-sm">Treatment Advisory Card</h3>
+                        <span id="quarantine-badge" class="hidden px-2.5 py-1 rounded text-[10px] font-bold tracking-wider"></span>
+                    </div>
+                    <div class="space-y-4 flex-1">
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Identified Pathogen / Crop State</span>
+                            <div id="field-hazard-name" class="text-base font-bold text-[#0a2215] mt-1">Run model to see diagnosis…</div>
+                            <span id="confidence-badge" class="inline-block mt-1 text-xs mono bg-[#f2f8f4] text-[#1e5e3a] px-2 py-0.5 rounded border border-[#e1efe5] font-semibold">Confidence: --</span>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl border border-slate-100 p-3">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Recommended Chemical Compound</span>
+                            <span id="field-pesticide" class="text-sm font-bold text-slate-800 mt-1 block">N/A</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-slate-50 rounded-xl border border-slate-100 p-3">
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Dosage Rate</span>
+                                <span id="field-dosage" class="text-xs font-bold text-slate-800 mt-1 block">N/A</span>
+                            </div>
+                            <div class="bg-slate-50 rounded-xl border border-slate-100 p-3">
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Schedule</span>
+                                <span id="field-schedule" class="text-xs font-bold text-slate-800 mt-1 block">Every 10-14 days</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Application Protocol</span>
+                            <p id="field-protocol" class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                Select a class or upload an image above, then click Run Diagnostic Model.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-100 pt-4 mt-4">
+                        <button onclick="window.print()" class="w-full border border-slate-200 hover:bg-slate-50 text-slate-500 font-medium py-2 rounded-lg text-xs flex items-center justify-center gap-2">
+                            🖨 Print Phytosanitary Prescription
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================
+             SECTION 2: INBOUND FARMER QUEUE
+             =================================================== -->
+        <section id="section-queue" class="page-section p-6 lg:p-8 max-w-6xl mx-auto">
+            <div class="mb-6">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs mono font-semibold">LIVE</span>
+                    <h2 class="text-lg font-bold text-slate-800">Inbound Diagnostics Queue</h2>
+                </div>
+                <p class="text-sm text-slate-500">Select a ticket from the queue to review symptoms, AI triage, and issue a prescription.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-5 gap-5">
+                <!-- Queue List -->
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <span class="font-bold text-slate-700 text-sm">Farmer Tickets</span>
+                        <span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded mono">6 PENDING</span>
+                    </div>
+                    <div id="queue-list" class="divide-y divide-slate-50 max-h-[560px] overflow-y-auto slim-scroll">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Detail Panel -->
+                <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div id="queue-placeholder" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-10 text-center">
+                        <div class="text-4xl mb-3">📋</div>
+                        <p class="text-sm font-medium text-slate-500">Select a ticket from the queue</p>
+                        <p class="text-xs mt-1">Farmer symptoms, AI report, and prescription tools will appear here.</p>
+                    </div>
+                    <div id="queue-detail" class="hidden flex-1 flex flex-col p-6 space-y-4 overflow-y-auto slim-scroll">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                                <span id="qd-id" class="mono text-xs text-slate-400"></span>
+                                <h3 id="qd-title" class="text-base font-bold text-slate-800 mt-0.5"></h3>
+                            </div>
+                            <span id="qd-badge" class="text-[10px] px-2.5 py-1 rounded-full font-semibold"></span>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 border border-slate-100">
+                            <p class="text-[10px] text-slate-400 font-semibold uppercase mb-1">Farmer-Reported Symptoms</p>
+                            <p id="qd-symptoms"></p>
+                        </div>
+                        <div class="bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 text-sm">
+                            <p class="text-[10px] text-emerald-600 font-semibold uppercase mb-1">🤖 AI Pre-Triage Analysis</p>
+                            <p id="qd-ai" class="text-slate-700 text-xs leading-relaxed"></p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Agronomist Prescription Notes</label>
+                            <textarea id="qd-notes" rows="3" class="form-input text-xs" placeholder="Enter your expert prescription, chemical recommendations, dosage, and follow-up actions…"></textarea>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="resolveTicket()" class="flex-1 bg-[#1e5e3a] hover:bg-[#16482c] text-white text-xs font-bold py-2 rounded-lg transition-all">✓ Mark Resolved & Issue Prescription</button>
+                            <button onclick="flagTicket()" class="border border-rose-300 text-rose-600 hover:bg-rose-50 text-xs font-bold py-2 px-4 rounded-lg transition-all">⚠ Flag Critical</button>
+                        </div>
+                        <div id="qd-feedback" class="hidden text-xs text-center py-2 rounded-lg font-semibold"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================
+             SECTION 3: 14-DAY PROGNOSIS CHART
+             =================================================== -->
+        <section id="section-prognosis" class="page-section p-6 lg:p-8 max-w-5xl mx-auto">
+            <div class="mb-6">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="bg-[#e1efe5] text-[#1e5e3a] px-2 py-0.5 rounded text-xs mono font-semibold">PHASE 2</span>
+                    <h2 class="text-lg font-bold text-slate-800">14-Day Recovery Prognosis</h2>
+                </div>
+                <p class="text-sm text-slate-500">Expected vs actual field recovery. If actual falls below expected, pesticide resistance is suspected.</p>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <!-- Class selector for chart -->
+                <div class="flex flex-wrap items-center gap-4 mb-6 pb-5 border-b border-slate-100">
+                    <div class="flex-1 min-w-[220px]">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1.5">Select Pathogen Profile</label>
+                        <select id="chart-class-select" class="form-input" onchange="onChartClassChange()">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <span class="text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg mono font-semibold">Forecasting Active</span>
+                </div>
+
+                <!-- Chart -->
+                <div id="recovery-chart-container">
+                    <canvas id="recovery-chart"></canvas>
+                </div>
+
+                <!-- Simulation Controls -->
+                <div class="mt-6 p-4 bg-[#f2f8f4] border border-[#e1efe5] rounded-xl">
+                    <h3 class="font-bold text-[#0a2215] text-sm mb-4">Simulate Field Progress</h3>
+                    <div class="grid sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Field Day</label>
+                            <input type="range" id="field-day" min="0" max="14" value="7" class="w-full accent-[#1e5e3a]">
+                            <span class="text-xs text-[#16482c] font-bold" id="field-day-val">Day 7 of 14</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Actual Recovery Score (%)</label>
+                            <input type="number" id="recovery-score" min="0" max="100" value="45" class="form-input text-center font-bold">
+                            <p class="text-[10px] text-slate-400 mt-1">Sets Day 7 actual metric</p>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="update-chart-btn" class="w-full bg-[#16482c] hover:bg-[#103420] text-white font-bold py-2 rounded-lg text-xs transition-all">
+                                UPDATE PLOT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================
+             SECTION 4: FIELD DASHBOARD
+             =================================================== -->
+        <section id="section-dashboard" class="page-section p-6 lg:p-8 max-w-6xl mx-auto">
+            <div class="mb-6 flex items-center gap-2">
+                <span class="bg-[#e1efe5] text-[#1e5e3a] px-2 py-0.5 rounded text-xs mono font-semibold">PHASE 3</span>
+                <h2 class="text-lg font-bold text-slate-800">Global Field Monitoring Dashboard</h2>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-slate-800 block">1,482</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Total Scans Validated</span>
+                    <span class="text-[10px] text-emerald-600 font-semibold">↑ 14% This Week</span>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span id="dashboard-hotspots" class="text-2xl font-bold text-rose-600 block">2</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Critical Hotspots</span>
+                    <span class="text-[10px] text-slate-400">Needs quarantine review</span>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-emerald-600 block">94.8%</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Safety Index</span>
+                    <span class="text-[10px] text-emerald-600 font-semibold">Satisfies thresholds</span>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5 text-center shadow-sm">
+                    <span class="text-2xl font-bold text-slate-800 block">45ms</span>
+                    <span class="text-xs text-slate-400 mt-1 block">Model Latency</span>
+                    <span class="text-[10px] text-slate-400 mono">MobileNetV2 Edge</span>
+                </div>
+            </div>
+
+            <!-- Critical Alerts Table -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-5">
+                <h3 class="font-bold text-slate-700 text-sm mb-4">Active Critical Alerts</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="text-left text-slate-400 border-b border-slate-100">
+                                <th class="pb-2 font-semibold pr-4">Crop / Region</th>
+                                <th class="pb-2 font-semibold pr-4">Pathogen</th>
+                                <th class="pb-2 font-semibold pr-4">Severity</th>
+                                <th class="pb-2 font-semibold pr-4">Status</th>
+                                <th class="pb-2 font-semibold">Logged</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50 text-slate-600">
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2.5 pr-4 font-semibold text-slate-800">Tomato — Maharashtra</td>
+                                <td class="py-2.5 pr-4">Late Blight (Phytophthora)</td>
+                                <td class="py-2.5 pr-4"><span class="badge-critical px-2 py-0.5 rounded-full text-[10px] font-semibold">CRITICAL</span></td>
+                                <td class="py-2.5 pr-4 text-amber-600 font-medium">Prescription Issued</td>
+                                <td class="py-2.5 mono text-slate-400">12 min ago</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2.5 pr-4 font-semibold text-slate-800">Potato — Himachal Pradesh</td>
+                                <td class="py-2.5 pr-4">Late Blight (Phytophthora)</td>
+                                <td class="py-2.5 pr-4"><span class="badge-critical px-2 py-0.5 rounded-full text-[10px] font-semibold">CRITICAL</span></td>
+                                <td class="py-2.5 pr-4 text-rose-600 font-medium">Quarantine Flagged</td>
+                                <td class="py-2.5 mono text-slate-400">3 hr ago</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2.5 pr-4 font-semibold text-slate-800">Orange — Gujarat</td>
+                                <td class="py-2.5 pr-4">Citrus Greening (HLB)</td>
+                                <td class="py-2.5 pr-4"><span class="badge-critical px-2 py-0.5 rounded-full text-[10px] font-semibold">CRITICAL</span></td>
+                                <td class="py-2.5 pr-4 text-rose-600 font-medium">Expert Review Pending</td>
+                                <td class="py-2.5 mono text-slate-400">Yesterday</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2.5 pr-4 font-semibold text-slate-800">Grape — Nashik</td>
+                                <td class="py-2.5 pr-4">Esca / Black Measles</td>
+                                <td class="py-2.5 pr-4"><span class="badge-moderate px-2 py-0.5 rounded-full text-[10px] font-semibold">MODERATE</span></td>
+                                <td class="py-2.5 pr-4 text-emerald-600 font-medium">Resolved</td>
+                                <td class="py-2.5 mono text-slate-400">2 days ago</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center justify-between text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-500">✓</span>
+                    Phytosanitary database up to date — ICAR Principles Applied
+                </div>
+                <span class="mono">Database Sync: 2026-06-20</span>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="bg-[#0a2215] border-t border-[#103420] text-slate-400 text-xs py-5">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p>© 2026 KrishiConnect Portal — Agronomist Precision Diagnostics. ICAR Principles.</p>
+        <div class="flex gap-4 mono">
+            <span>VLM Core Active</span><span>•</span><span>Secure Firestore</span><span>•</span><span>Light Theme</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+/* =====================================================
+   DISEASE REGISTRY
+   ===================================================== */
+const REGISTRY = {
+    "Apple___Apple_scab":{"hazard_name":"Apple Scab (Fungal Disease)","pesticide":"Captan 50 WP or Myclobutanil","dosage":"2.5 kg/ha in 1000L water","application_method":"Apply at green tip stage, repeat every 10-14 days until petal fall.","critical_alert":false,"recovery_rate":0.8},
+    "Apple___Black_rot":{"hazard_name":"Apple Black Rot (Fungal Canker)","pesticide":"Thiophanate-methyl or Mancozeb","dosage":"1.5 kg/ha","application_method":"Foliar spray at pink bud stage. Prune dead wood.","critical_alert":false,"recovery_rate":0.75},
+    "Apple___Cedar_apple_rust":{"hazard_name":"Cedar Apple Rust (Fungal)","pesticide":"Myclobutanil (Nova 40W)","dosage":"140 g/ha","application_method":"Apply tight cluster through petal fall to prevent spore germination.","critical_alert":false,"recovery_rate":0.85},
+    "Apple___healthy":{"hazard_name":"Healthy Apple Canopy","pesticide":"None","dosage":"N/A","application_method":"Maintain orchard floor sanitation and seasonal pruning.","critical_alert":false,"recovery_rate":1.0},
+    "Blueberry___healthy":{"hazard_name":"Healthy Blueberry Plant","pesticide":"None","dosage":"N/A","application_method":"Monitor soil pH (4.5-4.8) and standard drip irrigation.","critical_alert":false,"recovery_rate":1.0},
+    "Cherry_(including_sour)___Powdery_mildew":{"hazard_name":"Cherry Powdery Mildew (Fungal)","pesticide":"Wettable Sulfur","dosage":"3 kg/ha","application_method":"Spray at first white patches; repeat every 7-10 days.","critical_alert":false,"recovery_rate":0.8},
+    "Cherry_(including_sour)___healthy":{"hazard_name":"Healthy Cherry Canopy","pesticide":"None","dosage":"N/A","application_method":"Preventative organic copper sprays during dormant winter.","critical_alert":false,"recovery_rate":1.0},
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot":{"hazard_name":"Gray Leaf Spot (Cercospora)","pesticide":"Azoxystrobin + Propiconazole","dosage":"750 ml/ha","application_method":"Apply at V5–R1 growth stage in warm humid weather.","critical_alert":false,"recovery_rate":0.7},
+    "Corn_(maize)___Common_rust_":{"hazard_name":"Common Rust (Puccinia sorghi)","pesticide":"Pyraclostrobin (Headline EC)","dosage":"400-600 ml/ha","application_method":"Foliar spray at early onset, targeting upper canopy.","critical_alert":false,"recovery_rate":0.82},
+    "Corn_(maize)___Northern_Leaf_Blight":{"hazard_name":"Northern Leaf Blight (Exserohilum)","pesticide":"Difenoconazole + Azoxystrobin","dosage":"500 ml/ha","application_method":"Apply before silking if lower leaves show long grayish lesions.","critical_alert":false,"recovery_rate":0.76},
+    "Corn_(maize)___healthy":{"hazard_name":"Healthy Corn Foliage","pesticide":"None","dosage":"N/A","application_method":"Ensure proper nitrogen side-dressing and crop rotation.","critical_alert":false,"recovery_rate":1.0},
+    "Grape___Black_rot":{"hazard_name":"Grape Black Rot (Fungal)","pesticide":"Mancozeb or Elite 45 DF","dosage":"2 kg/ha","application_method":"Apply from bud break through early summer to protect berries.","critical_alert":false,"recovery_rate":0.78},
+    "Grape___Esca_(Black_Measles)":{"hazard_name":"Esca / Black Measles (Fungal Complex)","pesticide":"Trichoderma biocontrol / Wound Protectant","dosage":"Apply as paste to pruning cuts","application_method":"No curative spray. Treat major pruning wounds immediately.","critical_alert":true,"recovery_rate":0.45},
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)":{"hazard_name":"Isariopsis Leaf Spot (Grape Blight)","pesticide":"Copper Oxychloride or Mancozeb","dosage":"2.5 kg/ha","application_method":"Post-harvest or early infection spray to prevent leaf drop.","critical_alert":false,"recovery_rate":0.8},
+    "Grape___healthy":{"hazard_name":"Healthy Grapevine Canopy","pesticide":"None","dosage":"N/A","application_method":"Standard trellis management to optimise airflow and sunlight.","critical_alert":false,"recovery_rate":1.0},
+    "Orange___Haunglongbing_(Citrus_greening)":{"hazard_name":"Citrus Greening (HLB)","pesticide":"Imidacloprid / Thiamethoxam","dosage":"200-300 ml/ha","application_method":"CRITICAL: No bacterial cure. Eliminate Asian Citrus Psyllid vector. Uproot heavily infected trees.","critical_alert":true,"recovery_rate":0.3},
+    "Peach___Bacterial_spot":{"hazard_name":"Peach Bacterial Spot (Xanthomonas)","pesticide":"Oxytetracycline or Copper Hydroxide","dosage":"1.5 kg/ha","application_method":"Early copper sprays; switch to oxytetracycline at shuck split.","critical_alert":false,"recovery_rate":0.8},
+    "Peach___healthy":{"hazard_name":"Healthy Peach Crop","pesticide":"None","dosage":"N/A","application_method":"Monitor fruit thinning and manage orchard floor covers.","critical_alert":false,"recovery_rate":1.0},
+    "Pepper,_bell___Bacterial_spot":{"hazard_name":"Bell Pepper Bacterial Spot","pesticide":"Copper Hydroxide + Mancozeb","dosage":"2 kg + 1.5 kg/ha","application_method":"Tank-mix to overcome copper-resistant strains. Spray weekly in rain.","critical_alert":false,"recovery_rate":0.82},
+    "Pepper,_bell___healthy":{"hazard_name":"Healthy Bell Pepper","pesticide":"None","dosage":"N/A","application_method":"Ensure steady calcium availability to prevent blossom end rot.","critical_alert":false,"recovery_rate":1.0},
+    "Potato___Early_blight":{"hazard_name":"Potato Early Blight (Alternaria)","pesticide":"Chlorothalonil or Mancozeb","dosage":"2 kg/ha","application_method":"Begin when plants reach 6 inches or at high spore count alerts.","critical_alert":false,"recovery_rate":0.85},
+    "Potato___Late_blight":{"hazard_name":"Potato Late Blight (Phytophthora)","pesticide":"Fluopicolide (Infinito) or Metalaxyl-M","dosage":"1.2–1.6 L/ha","application_method":"HIGH PRIORITY: Apply immediately. Full coverage of lower leaves and stems. Repeat every 5 days in wet conditions.","critical_alert":true,"recovery_rate":0.5},
+    "Potato___healthy":{"hazard_name":"Healthy Potato Crop","pesticide":"None","dosage":"N/A","application_method":"Regular hilling and soil moisture optimisation.","critical_alert":false,"recovery_rate":1.0},
+    "Raspberry___healthy":{"hazard_name":"Healthy Raspberry Crop","pesticide":"None","dosage":"N/A","application_method":"Cane thinning and post-harvest removal to control overwintering pests.","critical_alert":false,"recovery_rate":1.0},
+    "Soybean___healthy":{"hazard_name":"Healthy Soybean Crop","pesticide":"None","dosage":"N/A","application_method":"Regular sweep-net sampling for early defoliator identification.","critical_alert":false,"recovery_rate":1.0},
+    "Squash___Powdery_mildew":{"hazard_name":"Squash Powdery Mildew (Fungal)","pesticide":"Azoxystrobin or Potassium Bicarbonate","dosage":"1 kg/ha","application_method":"Spray upper and lower leaf surfaces. Rotate chemical classes.","critical_alert":false,"recovery_rate":0.8},
+    "Strawberry___Leaf_scorch":{"hazard_name":"Strawberry Leaf Scorch (Fungal)","pesticide":"Copper Hydroxide or Captan","dosage":"2.5 kg/ha","application_method":"Early spring before blossoms open. Avoid peak bloom to protect pollinators.","critical_alert":false,"recovery_rate":0.82},
+    "Strawberry___healthy":{"hazard_name":"Healthy Strawberry Foliage","pesticide":"None","dosage":"N/A","application_method":"Straw mulch beneath canopies to keep berries off bare soil.","critical_alert":false,"recovery_rate":1.0},
+    "Tomato___Bacterial_spot":{"hazard_name":"Tomato Bacterial Spot (Xanthomonas)","pesticide":"Copper Ammonium Carbonate + Mancozeb","dosage":"2L + 2 kg/ha","application_method":"Apply preventatively at first flower cluster or when humidity exceeds 85%.","critical_alert":false,"recovery_rate":0.8},
+    "Tomato___Early_blight":{"hazard_name":"Tomato Early Blight (Fungal)","pesticide":"Chlorothalonil (Bravo Weather Stik)","dosage":"2.3 L/ha","application_method":"Target lower leaves with concentric ring lesions. 7-10 day cycle.","critical_alert":false,"recovery_rate":0.84},
+    "Tomato___Late_blight":{"hazard_name":"Tomato Late Blight (Epidemic Risk)","pesticide":"Cyazofamid (Ranman) or Copper Hydroxide","dosage":"300 ml/ha","application_method":"CRITICAL: Spreads via wind. Apply immediately on dark water-soaked lesions.","critical_alert":true,"recovery_rate":0.48},
+    "Tomato___Leaf_Mold":{"hazard_name":"Tomato Leaf Mold (Fungal)","pesticide":"Difenoconazole or Chlorothalonil","dosage":"500 ml/ha","application_method":"Common in greenhouses. Apply fungicide + aggressive ventilation to lower humidity.","critical_alert":false,"recovery_rate":0.8},
+    "Tomato___Septoria_leaf_spot":{"hazard_name":"Septoria Leaf Spot (Fungal)","pesticide":"Mancozeb or Copper Fungicide","dosage":"2 kg/ha","application_method":"Apply at tiny dark spots with yellow halos on lower leaves. Avoid overhead irrigation.","critical_alert":false,"recovery_rate":0.78},
+    "Tomato___Spider_mites Two-spotted_spider_mite":{"hazard_name":"Two-Spotted Spider Mites","pesticide":"Abamectin (Agri-Mek SC) or Soap","dosage":"250 ml/ha","application_method":"Spray forcefully onto undersides of leaves where webbing forms.","critical_alert":false,"recovery_rate":0.88},
+    "Tomato___Target_Spot":{"hazard_name":"Tomato Target Spot (Fungal)","pesticide":"Azoxystrobin (Quadris)","dosage":"450 ml/ha","application_method":"Foliar application at early detection. Max 2 sequential applications before rotating.","critical_alert":false,"recovery_rate":0.8},
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus":{"hazard_name":"Tomato Yellow Leaf Curl Virus (TYLCV)","pesticide":"Acetamiprid / Cyantraniliprole","dosage":"350 ml/ha","application_method":"CRITICAL: Whitefly vector. Target systemic insecticides + yellow sticky traps.","critical_alert":true,"recovery_rate":0.2},
+    "Tomato___Tomato_mosaic_virus":{"hazard_name":"Tomato Mosaic Virus (ToMV)","pesticide":"None (Viral)","dosage":"N/A","application_method":"CRITICAL: Remove and incinerate infected plants. Disinfect tools with 20% powdered milk.","critical_alert":true,"recovery_rate":0.1},
+    "Tomato___healthy":{"hazard_name":"Healthy Tomato Canopy","pesticide":"None","dosage":"N/A","application_method":"Staking, lower sucker pruning, and balanced drip fertigation.","critical_alert":false,"recovery_rate":1.0}
+};
+
+/* =====================================================
+   STATE
+   ===================================================== */
+let selectedKey    = "Tomato___Late_blight";
+let currentDay     = 7;
+let recoveryChart  = null;
+let actualScores   = {};
+let selectedQueueId = null;
+
+/* =====================================================
+   SIDEBAR / NAV
+   ===================================================== */
+const menuBtn        = document.getElementById('menu-btn');
+const sidebar        = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+menuBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('-translate-x-full');
+    sidebarOverlay.classList.toggle('open');
+});
+sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.remove('open');
+});
+
+function showSection(id) {
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item[data-section]').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+    const btn = document.querySelector(`[data-section="${id}"]`);
+    if (btn) btn.classList.add('active');
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.remove('open');
+}
+
+/* =====================================================
+   DROPDOWN INIT
+   ===================================================== */
+function initDropdowns() {
+    const selects = ['class-select', 'chart-class-select'];
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        Object.keys(REGISTRY).sort().forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = key.replace(/___/g, ' — ').replace(/_/g, ' ');
+            if (key === selectedKey) opt.selected = true;
+            el.appendChild(opt);
+        });
+    });
+}
+
+/* =====================================================
+   DIAGNOSTIC MODEL
+   ===================================================== */
+function runDiagnosticModel() {
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btn-text');
+    spinner.classList.remove('hidden');
+    btnText.textContent = 'RUNNING INFERENCE…';
+
+    setTimeout(() => {
+        spinner.classList.add('hidden');
+        btnText.textContent = 'RUN DIAGNOSTIC MODEL';
+
+        selectedKey = document.getElementById('class-select').value;
+        const info  = REGISTRY[selectedKey];
+
+        document.getElementById('field-hazard-name').textContent = info.hazard_name;
+        document.getElementById('field-pesticide').textContent   = info.pesticide;
+        document.getElementById('field-dosage').textContent      = info.dosage;
+        document.getElementById('field-protocol').textContent    = info.application_method;
+
+        const isHealthy = selectedKey.includes('healthy');
+        const conf = isHealthy ? (0.95 + Math.random() * 0.04) : (0.82 + Math.random() * 0.16);
+        document.getElementById('confidence-badge').textContent = `Confidence: ${(conf * 100).toFixed(2)}%`;
+
+        // Badge
+        const badge  = document.getElementById('quarantine-badge');
+        const hotspot = document.getElementById('dashboard-hotspots');
+        if (info.critical_alert) {
+            badge.textContent  = '⚠ CRITICAL: QUARANTINE';
+            badge.className    = 'px-2.5 py-1 rounded text-[10px] font-bold tracking-wider badge-critical animate-pulse';
+            badge.classList.remove('hidden');
+            if (hotspot) hotspot.textContent = '3';
+        } else if (isHealthy) {
+            badge.textContent  = '✓ SAFE STATUS';
+            badge.className    = 'px-2.5 py-1 rounded text-[10px] font-bold tracking-wider badge-mild';
+            badge.classList.remove('hidden');
+            if (hotspot) hotspot.textContent = '2';
+        } else {
+            badge.classList.add('hidden');
+            if (hotspot) hotspot.textContent = '2';
+        }
+    }, 800);
+}
+
+/* =====================================================
+   IMAGE UPLOAD
+   ===================================================== */
+function initImageUpload() {
+    const fileInput  = document.getElementById('image-upload');
+    const dropZone   = document.getElementById('drop-zone');
+    const preview    = document.getElementById('image-preview');
+    const previewBox = document.getElementById('image-preview-container');
+    const prompt     = document.getElementById('upload-prompt');
+    const removeBtn  = document.getElementById('remove-img-btn');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', function () {
+        if (!this.files?.[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            previewBox.classList.remove('hidden');
+            prompt.classList.add('hidden');
+            runDiagnosticModel();
+        };
+        reader.readAsDataURL(this.files[0]);
+    });
+
+    removeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        fileInput.value = '';
+        preview.src     = '#';
+        previewBox.classList.add('hidden');
+        prompt.classList.remove('hidden');
+    });
+}
+
+/* =====================================================
+   RECOVERY CHART
+   ===================================================== */
+function generateExpectedCurve(key) {
+    const maxR = REGISTRY[key].recovery_rate * 100;
+    return Array.from({ length: 15 }, (_, day) =>
+        Math.round(maxR / (1 + Math.exp(-0.35 * (day - 6))))
+    );
+}
+
+function initActualScores(key) {
+    const maxR = REGISTRY[key].recovery_rate * 100;
+    for (let i = 0; i <= 14; i++) {
+        actualScores[i] = i <= 7
+            ? Math.round(maxR * (i / 14) * (0.85 + Math.random() * 0.2))
+            : null;
+    }
+    currentDay = 7;
+    const slider = document.getElementById('field-day');
+    if (slider) { slider.value = 7; }
+    const dayVal = document.getElementById('field-day-val');
+    if (dayVal) dayVal.textContent = 'Day 7 of 14';
+    const scoreInput = document.getElementById('recovery-score');
+    if (scoreInput) scoreInput.value = actualScores[7];
+}
+
+function buildChart() {
+    const ctx = document.getElementById('recovery-chart').getContext('2d');
+    const exp = generateExpectedCurve(selectedKey);
+    const act = exp.map((_, i) => i <= currentDay ? actualScores[i] : null);
+
+    recoveryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array.from({ length: 15 }, (_, i) => `Day ${i}`),
+            datasets: [
+                {
+                    label: 'Expected Recovery (%)',
+                    data: exp,
+                    borderColor: '#82c033',
+                    backgroundColor: 'rgba(130,192,51,0.08)',
+                    borderWidth: 2, fill: true, tension: 0.3
+                },
+                {
+                    label: 'Actual Field Recovery (%)',
+                    data: act,
+                    borderColor: '#3b82f6',
+                    backgroundColor: '#3b82f6',
+                    borderWidth: 3, pointRadius: 5, pointHoverRadius: 7,
+                    fill: false, tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { font: { size: 11, weight: 'bold' } } } },
+            scales: {
+                y: { min: 0, max: 100, title: { display: true, text: 'Recovery Score % (Tissue Health)', font: { weight: 'bold', size: 11 } } },
+                x: { title: { display: true, text: 'Days After Pesticide Application', font: { weight: 'bold', size: 11 } } }
+            }
+        }
+    });
+}
+
+function updateChart() {
+    if (!recoveryChart) return;
+    const exp = generateExpectedCurve(selectedKey);
+    const act = exp.map((_, i) => i <= currentDay ? actualScores[i] : null);
+    recoveryChart.data.datasets[0].data = exp;
+    recoveryChart.data.datasets[1].data = act;
+    recoveryChart.update();
+}
+
+function onChartClassChange() {
+    selectedKey = document.getElementById('chart-class-select').value;
+    initActualScores(selectedKey);
+    updateChart();
+    // sync the diagnostic dropdown too
+    const diag = document.getElementById('class-select');
+    if (diag) diag.value = selectedKey;
+}
+
+/* =====================================================
+   INBOUND QUEUE DATA
+   ===================================================== */
+const QUEUE_DATA = [
+    { id:'KK-001', crop:'Tomato', region:'Maharashtra', stage:'Flowering / Fruiting', symptoms:'Leaves developing dark water-soaked lesions on edges; white fuzzy mould on underside. Spread rapidly over 3 days.', severity:'critical', ai:'AI Classification: Tomato Late Blight (Phytophthora infestans). High epidemic risk. Immediate systemic fungicide application recommended. Cyazofamid (Ranman) @ 300 ml/ha. Isolate affected rows.', status:'Awaiting Expert' },
+    { id:'KK-002', crop:'Wheat', region:'Punjab', stage:'Vegetative Growth', symptoms:'Rust-coloured oval pustules erupting on upper leaf surface; leaves yellowing from base upwards.', severity:'moderate', ai:'AI Classification: Wheat Stem Rust (Puccinia graminis). Moderate severity. Propiconazole @ 500 ml/ha foliar spray recommended. Monitor for spread.', status:'AI Triaged' },
+    { id:'KK-003', crop:'Grape', region:'Nashik', stage:'Flowering / Fruiting', symptoms:'Dark circular spots on berries with black centre; small round spots on leaves. Started 1 week ago.', severity:'critical', ai:'AI Classification: Grape Black Rot (Guignardia bidwellii). Apply Mancozeb 2 kg/ha immediately. Bag affected clusters.', status:'Awaiting Expert' },
+    { id:'KK-004', crop:'Rice', region:'Tamil Nadu', stage:'Vegetative Growth', symptoms:'White-grey patches appearing on leaf sheaths; tan lesions with brown margins. Moderate spread.', severity:'mild', ai:'AI Classification: Rice Sheath Blight (Rhizoctonia solani). Apply Hexaconazole @ 1 L/ha. Reduce nitrogen fertilisation temporarily.', status:'Expert Assigned' },
+    { id:'KK-005', crop:'Maize', region:'Karnataka', stage:'Vegetative Growth', symptoms:'Long rectangular grey-to-tan lesions running parallel to leaf veins on lower canopy.', severity:'moderate', ai:'AI Classification: Gray Leaf Spot (Cercospora zeae-maydis). Azoxystrobin + Propiconazole @ 750 ml/ha at V5-R1 stage.', status:'AI Triaged' },
+    { id:'KK-006', crop:'Tomato', region:'Andhra Pradesh', stage:'Seedling', symptoms:'Leaves curling upward with bright yellow mosaic pattern. Plants stunted; white insects visible.', severity:'critical', ai:'AI Classification: Tomato Yellow Leaf Curl Virus (TYLCV) via Whitefly vector. CRITICAL: No chemical cure. Apply Acetamiprid to kill whitefly vector. Remove infected plants. Use yellow sticky traps.', status:'Awaiting Expert' },
+];
+
+const SEVERITY_CLASS = { critical:'badge-critical', moderate:'badge-moderate', mild:'badge-mild', resolved:'badge-resolved' };
+
+function renderQueue() {
+    const list = document.getElementById('queue-list');
+    list.innerHTML = QUEUE_DATA.map(t => `
+        <div class="queue-item px-4 py-3 ${t.id === selectedQueueId ? 'selected' : ''}" onclick="selectQueueItem('${t.id}')">
+            <div class="flex items-center justify-between mb-1">
+                <span class="mono text-[10px] text-slate-400">${t.id}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${SEVERITY_CLASS[t.severity]}">${t.severity.toUpperCase()}</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-800">${t.crop} — ${t.region}</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">${t.status}</p>
+        </div>
+    `).join('');
+}
+
+function selectQueueItem(id) {
+    selectedQueueId = id;
+    const t = QUEUE_DATA.find(x => x.id === id);
+    if (!t) return;
+
+    document.getElementById('queue-placeholder').classList.add('hidden');
+    document.getElementById('queue-detail').classList.remove('hidden');
+
+    document.getElementById('qd-id').textContent       = t.id;
+    document.getElementById('qd-title').textContent    = `${t.crop} — ${t.region} · ${t.stage}`;
+    document.getElementById('qd-symptoms').textContent = t.symptoms;
+    document.getElementById('qd-ai').textContent       = t.ai;
+    document.getElementById('qd-notes').value          = '';
+    document.getElementById('qd-feedback').classList.add('hidden');
+
+    const badge = document.getElementById('qd-badge');
+    badge.textContent  = t.severity.toUpperCase();
+    badge.className    = `text-[10px] px-2.5 py-1 rounded-full font-semibold ${SEVERITY_CLASS[t.severity]}`;
+
+    renderQueue();
+}
+
+function resolveTicket() {
+    const notes = document.getElementById('qd-notes').value.trim();
+    if (!notes) { alert('Please enter your prescription notes before resolving.'); return; }
+    const t = QUEUE_DATA.find(x => x.id === selectedQueueId);
+    if (t) { t.status = 'Resolved'; t.severity = 'resolved'; }
+    const fb = document.getElementById('qd-feedback');
+    fb.textContent  = `✓ Ticket ${selectedQueueId} resolved. Prescription saved and notified to farmer.`;
+    fb.className    = 'text-xs text-center py-2 rounded-lg font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700';
+    fb.classList.remove('hidden');
+    renderQueue();
+}
+
+function flagTicket() {
+    const t = QUEUE_DATA.find(x => x.id === selectedQueueId);
+    if (t) t.status = 'CRITICAL Flagged';
+    const fb = document.getElementById('qd-feedback');
+    fb.textContent  = `⚠ Ticket ${selectedQueueId} flagged as critical. Field team notified.`;
+    fb.className    = 'text-xs text-center py-2 rounded-lg font-semibold bg-rose-50 border border-rose-200 text-rose-700';
+    fb.classList.remove('hidden');
+    renderQueue();
+}
+
+/* =====================================================
+   SIMULATION CONTROLS
+   ===================================================== */
+function initSimulationControls() {
+    const slider = document.getElementById('field-day');
+    slider.addEventListener('input', function () {
+        currentDay = parseInt(this.value);
+        document.getElementById('field-day-val').textContent = `Day ${currentDay} of 14`;
+        if (actualScores[currentDay] === null) {
+            const exp = generateExpectedCurve(selectedKey);
+            actualScores[currentDay] = Math.round(exp[currentDay] * (0.8 + Math.random() * 0.3));
+        }
+        document.getElementById('recovery-score').value = actualScores[currentDay];
+        updateChart();
+    });
+
+    document.getElementById('update-chart-btn').addEventListener('click', () => {
+        const score = parseInt(document.getElementById('recovery-score').value);
+        actualScores[currentDay] = Math.min(100, Math.max(0, score));
+        for (let i = currentDay + 1; i <= 14; i++) actualScores[i] = null;
+        updateChart();
+    });
+}
+
+/* =====================================================
+   INIT
+   ===================================================== */
+window.addEventListener('DOMContentLoaded', () => {
+    initDropdowns();
+    initImageUpload();
+    initActualScores(selectedKey);
+    buildChart();
+    runDiagnosticModel();
+    renderQueue();
+    initSimulationControls();
+
+    document.getElementById('analyze-btn').addEventListener('click', runDiagnosticModel);
+    document.getElementById('class-select').addEventListener('change', runDiagnosticModel);
+});
+</script>
+</body>
+</html>
